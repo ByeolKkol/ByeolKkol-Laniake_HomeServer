@@ -7,10 +7,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from googleapiclient.discovery import build as google_build
+from googleapiclient.http import MediaFileUpload
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
 from models import UploadLog
+
+CHUNK_SIZE = 10 * 1024 * 1024  # 10 MB
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +109,7 @@ def get_drive_connection_status() -> dict[str, Any]:
     }
 
 
-def _build_drive() -> GoogleDrive:
+def _build_gauth() -> GoogleAuth:
     if not GOOGLE_DRIVE_CREDENTIALS_FILE.exists():
         raise RuntimeError("Google Drive credentials.json not found")
 
@@ -119,7 +123,7 @@ def _build_drive() -> GoogleDrive:
         }
         gauth.settings["oauth_scope"] = ["https://www.googleapis.com/auth/drive"]
         gauth.ServiceAuth()
-        return GoogleDrive(gauth)
+        return gauth
 
     _ensure_settings_file()
 
@@ -139,36 +143,11 @@ def _build_drive() -> GoogleDrive:
         gauth.Authorize()
 
     gauth.SaveCredentialsFile(str(GOOGLE_DRIVE_SESSION_FILE))
-    return GoogleDrive(gauth)
+    return gauth
 
 
-def _upload_sync(file_path: str, parent_folder_id: str | None = None) -> dict[str, Any]:
-    drive = _build_drive()
-    file_name = Path(file_path).name
-
-    metadata: dict[str, Any] = {"title": file_name}
-    if parent_folder_id:
-        metadata["parents"] = [{"id": parent_folder_id}]
-
-    drive_file = drive.CreateFile(metadata)
-    mime_type, _ = mimetypes.guess_type(file_path)
-    drive_file.SetContentFile(file_path)
-    # pydrive2 usually handles mimetype automatically, or you can set it via metadata
-    drive_file.Upload(param={"supportsAllDrives": True})
-
-    file_id = drive_file.get("id")
-    file_url = drive_file.get("webViewLink")
-    if not file_url and file_id:
-        file_url = f"https://drive.google.com/file/d/{file_id}/view"
-
-    remote_size = drive_file.get("fileSize")
-    uploaded_size = int(remote_size) if remote_size else os.path.getsize(file_path)
-
-    return {
-        "file_id": file_id,
-        "file_url": file_url,
-        "uploaded_size": uploaded_size,
-    }
+def _build_drive() -> GoogleDrive:
+    return GoogleDrive(_build_gauth())
 
 
 async def upload_to_drive(
@@ -219,19 +198,68 @@ async def upload_to_drive(
             "updated_at": _utc_now(),
         }
 
-        result = await asyncio.to_thread(_upload_sync, file_path, parent_folder_id)
+        # 청크 업로드 (10MB 단위, 진행률 실시간 업데이트)
+        gauth = await asyncio.to_thread(_build_gauth)
+        http = gauth.Get_Http_Object()
+        service = google_build("drive", "v3", http=http)
+
+        mime_type, _ = mimetypes.guess_type(file_path)
+        media = MediaFileUpload(
+            file_path,
+            mimetype=mime_type or "application/octet-stream",
+            resumable=True,
+            chunksize=CHUNK_SIZE,
+        )
+        file_metadata: dict[str, Any] = {"name": Path(file_path).name}
+        if parent_folder_id:
+            file_metadata["parents"] = [parent_folder_id]
+
+        request = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields="id,webViewLink",
+            supportsAllDrives=True,
+        )
+
+        response = None
+        last_percent = -1
+        while response is None:
+            upload_status, response = await asyncio.to_thread(request.next_chunk)
+            if upload_status:
+                percent = int(upload_status.progress() * 100)
+                if percent != last_percent:
+                    last_percent = percent
+                    bytes_uploaded = int(file_size * upload_status.progress())
+                    log.progress_percent = percent
+                    log.bytes_uploaded = bytes_uploaded
+                    db.commit()
+                    runtime_status[upload_log_id] = {
+                        "upload_log_id": upload_log_id,
+                        "recording_id": log.recording_id,
+                        "status": "uploading",
+                        "message": log.message,
+                        "progress_percent": percent,
+                        "bytes_uploaded": bytes_uploaded,
+                        "bytes_total": file_size,
+                        "updated_at": _utc_now(),
+                    }
+
+        file_id = response.get("id")
+        file_url = response.get("webViewLink")
+        if not file_url and file_id:
+            file_url = f"https://drive.google.com/file/d/{file_id}/view"
 
         log.status = "completed"
         log.progress_percent = 100
-        log.bytes_uploaded = result["uploaded_size"]
+        log.bytes_uploaded = file_size
         log.bytes_total = file_size
-        log.drive_file_id = result.get("file_id")
-        log.drive_file_url = result.get("file_url")
+        log.drive_file_id = file_id
+        log.drive_file_url = file_url
         log.uploaded_at = _utc_now()
         log.message = "Uploaded to Google Drive"
         db.commit()
 
-        # [PRO] 업로드 성공 후 로컬 파일 삭제 (서버 용량 관리)
+        # 업로드 성공 후 로컬 파일 삭제 (서버 용량 관리)
         try:
             if os.path.exists(file_path):
                 os.remove(file_path)
@@ -242,11 +270,11 @@ async def upload_to_drive(
         runtime_status[upload_log_id] = {
             "upload_log_id": upload_log_id,
             "recording_id": log.recording_id,
-            "status": log.status,
+            "status": "completed",
             "message": log.message,
             "progress_percent": 100,
-            "bytes_uploaded": log.bytes_uploaded,
-            "bytes_total": log.bytes_total,
+            "bytes_uploaded": file_size,
+            "bytes_total": file_size,
             "drive_file_id": log.drive_file_id,
             "drive_file_url": log.drive_file_url,
             "updated_at": _utc_now(),
