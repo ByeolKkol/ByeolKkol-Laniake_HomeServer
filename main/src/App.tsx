@@ -180,11 +180,17 @@ export default function App() {
             <p className="mb-3 rounded-lg border border-app-border bg-app-soft px-3 py-2 text-sm">{message}</p>
           ) : null}
 
+          {/* AI 토론은 항상 마운트 — WebSocket 연결 및 스크롤 위치 유지 */}
+          <div className={appKey === 'discussion' ? 'flex-1 min-h-0 flex flex-col' : 'hidden'}>
+            <Suspense fallback={<TabFallback />}>
+              <AiDiscussionTab view={discussionTab} isActive={appKey === 'discussion'} />
+            </Suspense>
+          </div>
+
           <Suspense fallback={<TabFallback />}>
             {appKey === 'server' && serverTab === 'hardware' && <ServerControlTab />}
             {appKey === 'server' && serverTab === 'monitoring' && <ServerMonitoringTab />}
             {appKey === 'wol' && <WolTab />}
-            {appKey === 'discussion' && <AiDiscussionTab view={discussionTab} />}
             {appKey === 'settings' && settingsTab === 'app' && <SettingsTab />}
             {appKey === 'settings' && settingsTab === 'chzzk-account' && (
               <ChzzkAccountTab

@@ -8,18 +8,9 @@ import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/github-dark.css';
 import { getDiscussionHost } from './settingsStore';
 
-interface ChatMessage {
-  id: number;
-  sender: string;
-  content: string;
-  ts?: string;
-  streaming?: boolean;
-}
-
-interface SystemEvent {
-  id: number;
-  text: string;
-}
+type ChatItem =
+  | { kind: 'msg'; id: number; sender: string; content: string; ts?: string; streaming?: boolean }
+  | { kind: 'event'; id: number; text: string };
 
 const AGENT_STYLE: Record<string, { label: string; color: string; bg: string; avatarBg: string }> = {
   user:   { label: '사용자',  color: 'text-app-text',     bg: 'border-app-border bg-app-soft',       avatarBg: 'bg-app-soft border-app-border text-app-text' },
@@ -93,9 +84,8 @@ const DISPLAY_NAME_DEFAULT: Record<string, string> = {
 };
 
 
-export default function AiDiscussionTab({ view = 'chat' }: { view?: DiscussionView }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [events, setEvents] = useState<SystemEvent[]>([]);
+export default function AiDiscussionTab({ view = 'chat', isActive = true }: { view?: DiscussionView; isActive?: boolean }) {
+  const [items, setItems] = useState<ChatItem[]>([]);
   const [participants, setParticipants] = useState<string[]>([]);
   const [streamingMap, setStreamingMap] = useState<Record<string, number>>({}); // sender -> messageId
   const [input, setInput] = useState('');
@@ -126,7 +116,14 @@ export default function AiDiscussionTab({ view = 'chat' }: { view?: DiscussionVi
       const el = scrollContainerRef.current;
       el.scrollTop = el.scrollHeight;
     }
-  }, [messages, events]);
+  }, [items]);
+
+  useEffect(() => {
+    if (isActive && scrollContainerRef.current) {
+      const el = scrollContainerRef.current;
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [isActive]);
 
   async function loadAgentConfig() {
     const host = getDiscussionHost();
@@ -229,7 +226,7 @@ export default function AiDiscussionTab({ view = 'chat' }: { view?: DiscussionVi
     try {
       const res = await fetch(`http://${host}/history`);
       const data = await res.json() as { messages: { sender: string; content: string; ts: string }[] };
-      setMessages(data.messages.map((m) => ({ id: uid(), sender: m.sender, content: m.content, ts: m.ts })));
+      setItems(data.messages.map((m) => ({ kind: 'msg' as const, id: uid(), sender: m.sender, content: m.content, ts: m.ts })));
     } catch {
       // 히스토리 로드 실패 시 무시하고 빈 상태로 시작
     }
@@ -289,20 +286,17 @@ export default function AiDiscussionTab({ view = 'chat' }: { view?: DiscussionVi
         setStreamingMap((prev) => {
           const existingId = prev[sender];
           if (existingId !== undefined) {
-            // 기존 스트리밍 메시지에 청크 추가
-            setMessages((msgs) =>
-              msgs.map((m) =>
-                m.id === existingId ? { ...m, content: m.content + data.content } : m
+            setItems((cur) =>
+              cur.map((item) =>
+                item.kind === 'msg' && item.id === existingId
+                  ? { ...item, content: item.content + data.content }
+                  : item
               )
             );
             return prev;
           } else {
-            // 새 스트리밍 메시지 생성
             const id = uid();
-            setMessages((msgs) => [
-              ...msgs,
-              { id, sender, content: data.content!, streaming: true },
-            ]);
+            setItems((cur) => [...cur, { kind: 'msg', id, sender, content: data.content!, streaming: true }]);
             return { ...prev, [sender]: id };
           }
         });
@@ -310,30 +304,24 @@ export default function AiDiscussionTab({ view = 'chat' }: { view?: DiscussionVi
 
       else if (data.type === 'message' && data.sender && data.content !== undefined) {
         const sender = data.sender;
-        // 토론 모드에서 codex 메시지 수신 시 라운드 카운터 증가
         if (sender === 'codex') {
           setDebate((prev) => prev.active ? { ...prev, round: prev.round + 1 } : prev);
         }
         setStreamingMap((prev) => {
           const existingId = prev[sender];
           if (existingId !== undefined) {
-            // 스트리밍 완료 — 메시지 확정
-            setMessages((msgs) =>
-              msgs.map((m) =>
-                m.id === existingId
-                  ? { ...m, content: data.content!, streaming: false, ts: data.ts }
-                  : m
+            setItems((cur) =>
+              cur.map((item) =>
+                item.kind === 'msg' && item.id === existingId
+                  ? { ...item, content: data.content!, streaming: false, ts: data.ts }
+                  : item
               )
             );
             const next = { ...prev };
             delete next[sender];
             return next;
           } else {
-            // 스트리밍 없이 바로 완성 메시지 (user 자신의 메시지 등)
-            setMessages((msgs) => [
-              ...msgs,
-              { id: uid(), sender, content: data.content!, ts: data.ts },
-            ]);
+            setItems((cur) => [...cur, { kind: 'msg', id: uid(), sender, content: data.content!, ts: data.ts }]);
             return prev;
           }
         });
@@ -344,7 +332,7 @@ export default function AiDiscussionTab({ view = 'chat' }: { view?: DiscussionVi
   }
 
   function addEvent(text: string) {
-    setEvents((ev) => [...ev.slice(-50), { id: uid(), text }]);
+    setItems((prev) => [...prev, { kind: 'event' as const, id: uid(), text }]);
   }
 
   function send() {
@@ -528,42 +516,38 @@ export default function AiDiscussionTab({ view = 'chat' }: { view?: DiscussionVi
           isPinnedRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
         }}
       >
-        {messages.length === 0 && events.length === 0 && (
+        {items.length === 0 && (
           <p className="py-16 text-center text-sm text-app-muted">
             AI 에이전트들이 접속하면 대화를 시작할 수 있습니다.<br />
             <span className="text-xs">python agent_client.py --name claude</span>
           </p>
         )}
 
-        {/* 시스템 이벤트 (메시지와 인터리브) */}
-        {events.map((ev) => (
-          <p key={ev.id} className="text-center text-xs text-app-muted py-1">{ev.text}</p>
-        ))}
-
-        {messages.map((msg) => {
-          const style = senderStyle(msg.sender);
-          const isUser = msg.sender === 'user';
-          const avatar = avatars[msg.sender];
+        {items.map((item) => {
+          if (item.kind === 'event') {
+            return <p key={item.id} className="text-center text-xs text-app-muted py-1">{item.text}</p>;
+          }
+          const style = senderStyle(item.sender);
+          const isUser = item.sender === 'user';
+          const avatar = avatars[item.sender];
           return (
-            <div key={msg.id} className={`flex items-start gap-2 ${isUser ? 'flex-row-reverse' : ''}`}>
-              {/* 아바타 */}
+            <div key={item.id} className={`flex items-start gap-2 ${isUser ? 'flex-row-reverse' : ''}`}>
               <div className="shrink-0 mt-1">
                 {avatar ? (
                   <img src={avatar} className="h-16 w-16 rounded-full object-cover border border-app-border" />
                 ) : (
                   <div className={`h-16 w-16 rounded-full border flex items-center justify-center text-sm font-bold ${style.avatarBg}`}>
-                    {getLabel(msg.sender).charAt(0)}
+                    {getLabel(item.sender).charAt(0)}
                   </div>
                 )}
               </div>
-              {/* 말풍선 */}
               <div className={`max-w-[70%] rounded-xl border px-4 py-3 text-sm ${style.bg}`}>
                 <p className={`mb-1 text-xs font-semibold ${style.color}`}>
-                  {getLabel(msg.sender)}
-                  {msg.streaming && <span className="ml-1 animate-pulse">▍</span>}
-                  {msg.ts && (
+                  {getLabel(item.sender)}
+                  {item.streaming && <span className="ml-1 animate-pulse">▍</span>}
+                  {item.ts && (
                     <span className="ml-2 font-normal text-app-muted">
-                      {new Date(msg.ts).toLocaleTimeString()}
+                      {new Date(item.ts).toLocaleTimeString()}
                     </span>
                   )}
                 </p>
@@ -580,7 +564,7 @@ export default function AiDiscussionTab({ view = 'chat' }: { view?: DiscussionVi
                     remarkPlugins={[remarkGfm, remarkMath]}
                     rehypePlugins={[rehypeKatex, rehypeHighlight]}
                   >
-                    {msg.content}
+                    {item.content}
                   </ReactMarkdown>
                 </div>
               </div>
