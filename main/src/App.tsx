@@ -16,8 +16,9 @@ const ChzzkAccountTab   = lazy(() => import('./ChzzkAccountTab'));
 
 // ── Types & constants ─────────────────────────────────────────────────────────
 type AppKey = 'chzzk' | 'server' | 'wol' | 'discussion' | 'settings';
-type ChzzkTabKey = 'overview' | 'live' | 'uploads' | 'channels' | 'settings';
+type ChzzkTabKey = 'overview' | 'live' | 'uploads' | 'channels';
 type ServerTabKey = 'hardware' | 'monitoring';
+type SettingsTabKey = 'app' | 'chzzk-account';
 type DiscussionTabKey = 'chat' | 'prompt-common' | 'prompt-claude' | 'prompt-gemini' | 'prompt-codex';
 
 const APP_TABS: Array<{ key: AppKey; label: string }> = [
@@ -29,11 +30,15 @@ const APP_TABS: Array<{ key: AppKey; label: string }> = [
 ];
 
 const CHZZK_TABS: Array<{ key: ChzzkTabKey; label: string; hint: string }> = [
-  { key: 'overview',  label: 'Dashboard',         hint: 'System health and totals' },
-  { key: 'live',      label: 'Live Monitoring',    hint: 'Active recordings in real-time' },
-  { key: 'uploads',   label: 'Uploads',            hint: 'Google Drive upload activity' },
-  { key: 'channels',  label: 'Channels',           hint: 'Manage CHZZK channel IDs' },
-  { key: 'settings',  label: 'Account / Settings', hint: 'CHZZK cookie management' },
+  { key: 'overview', label: 'Dashboard',      hint: 'System health and totals' },
+  { key: 'live',     label: 'Live Monitoring', hint: 'Active recordings in real-time' },
+  { key: 'uploads',  label: 'Uploads',         hint: 'Google Drive upload activity' },
+  { key: 'channels', label: 'Channels',        hint: 'Manage CHZZK channel IDs' },
+];
+
+const SETTINGS_TABS: Array<{ key: SettingsTabKey; label: string; hint: string }> = [
+  { key: 'app',          label: '앱 설정',       hint: '서버 IP 및 연결 설정' },
+  { key: 'chzzk-account', label: 'CHZZK 계정',   hint: '쿠키 · Google Drive 설정' },
 ];
 
 const SERVER_TABS: Array<{ key: ServerTabKey; label: string; hint: string }> = [
@@ -80,6 +85,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ChzzkTabKey>('overview');
   const [serverTab, setServerTab] = useState<ServerTabKey>('hardware');
   const [discussionTab, setDiscussionTab] = useState<DiscussionTabKey>('chat');
+  const [settingsTab, setSettingsTab] = useState<SettingsTabKey>('app');
 
   const {
     loading, message, health, channels, activeRecordings, recordings, uploads, activeUploads,
@@ -96,7 +102,8 @@ export default function App() {
     appKey === 'chzzk' ? (CHZZK_TABS.find((t) => t.key === activeTab)?.label ?? '') :
     appKey === 'server' ? (SERVER_TABS.find((t) => t.key === serverTab)?.label ?? '') :
     appKey === 'wol' ? 'PC 전원 제어' :
-    appKey === 'discussion' ? 'AI 토론' : '설정';
+    appKey === 'discussion' ? 'AI 토론' :
+    SETTINGS_TABS.find((t) => t.key === settingsTab)?.label ?? '설정';
 
   const mainSubtitle =
     appKey === 'chzzk' ? `Backend API: ${getApiBase()}` :
@@ -146,9 +153,9 @@ export default function App() {
             {appKey === 'discussion' && DISCUSSION_NAV.map((item) => (
               <NavItem key={item.key} label={item.label} hint={item.hint} active={discussionTab === item.key} onClick={() => setDiscussionTab(item.key)} />
             ))}
-            {appKey === 'settings' && (
-              <NavItem label="설정" hint="서버 IP 및 연결 설정" active={true} onClick={() => undefined} />
-            )}
+            {appKey === 'settings' && SETTINGS_TABS.map((tab) => (
+              <NavItem key={tab.key} label={tab.label} hint={tab.hint} active={settingsTab === tab.key} onClick={() => setSettingsTab(tab.key)} />
+            ))}
           </nav>
         </aside>
 
@@ -178,7 +185,15 @@ export default function App() {
             {appKey === 'server' && serverTab === 'monitoring' && <ServerMonitoringTab />}
             {appKey === 'wol' && <WolTab />}
             {appKey === 'discussion' && <AiDiscussionTab view={discussionTab} />}
-            {appKey === 'settings' && <SettingsTab />}
+            {appKey === 'settings' && settingsTab === 'app' && <SettingsTab />}
+            {appKey === 'settings' && settingsTab === 'chzzk-account' && (
+              <ChzzkAccountTab
+                globalCookieStatus={globalCookieStatus} googleDriveStatus={googleDriveStatus}
+                savingCookies={savingCookies} savingDriveCredentials={savingDriveCredentials}
+                onSaveCookies={(a, s) => void handleSaveCookies(a, s)}
+                onUploadDriveCredentials={(f) => void handleUploadDriveCredentials(f)}
+              />
+            )}
 
             {appKey === 'chzzk' && activeTab === 'overview' && (
               <ChzzkOverviewTab
@@ -208,14 +223,6 @@ export default function App() {
               />
             )}
             {appKey === 'chzzk' && activeTab === 'uploads' && <ChzzkUploadsTab uploads={uploads} />}
-            {appKey === 'chzzk' && activeTab === 'settings' && (
-              <ChzzkAccountTab
-                globalCookieStatus={globalCookieStatus} googleDriveStatus={googleDriveStatus}
-                savingCookies={savingCookies} savingDriveCredentials={savingDriveCredentials}
-                onSaveCookies={(a, s) => void handleSaveCookies(a, s)}
-                onUploadDriveCredentials={(f) => void handleUploadDriveCredentials(f)}
-              />
-            )}
           </Suspense>
         </main>
       </div>
