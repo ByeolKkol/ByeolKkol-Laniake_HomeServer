@@ -110,8 +110,9 @@ export default function AiDiscussionTab({ view = 'chat' }: { view?: DiscussionVi
   const [avatars, setAvatars] = useState<Record<string, string>>({});
   const [avatarDraft, setAvatarDraft] = useState<Record<string, string>>({});
   const wsRef = useRef<WebSocket | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isComposingRef = useRef(false);
+  const isPinnedRef = useRef(true); // 맨 아래 고정 여부
 
   useEffect(() => {
     connect();
@@ -121,7 +122,10 @@ export default function AiDiscussionTab({ view = 'chat' }: { view?: DiscussionVi
   }, []);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (isPinnedRef.current && scrollContainerRef.current) {
+      const el = scrollContainerRef.current;
+      el.scrollTop = el.scrollHeight;
+    }
   }, [messages, events]);
 
   async function loadAgentConfig() {
@@ -360,7 +364,7 @@ export default function AiDiscussionTab({ view = 'chat' }: { view?: DiscussionVi
   const isResponding = Object.keys(streamingMap).length > 0;
 
   return (
-    <div className="flex h-[calc(100vh-10rem)] flex-col gap-3">
+    <div className="flex flex-1 min-h-0 flex-col gap-3">
 
       {/* 상태 바 */}
       <div className="flex flex-col gap-2 rounded-lg border border-app-border bg-app-soft px-3 py-2 text-xs">
@@ -515,7 +519,15 @@ export default function AiDiscussionTab({ view = 'chat' }: { view?: DiscussionVi
       })()}
 
       {/* 메시지 목록 + 입력 */}
-      {view === 'chat' && <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+      {view === 'chat' && <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto space-y-2 pr-1"
+        onScroll={() => {
+          const el = scrollContainerRef.current;
+          if (!el) return;
+          isPinnedRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+        }}
+      >
         {messages.length === 0 && events.length === 0 && (
           <p className="py-16 text-center text-sm text-app-muted">
             AI 에이전트들이 접속하면 대화를 시작할 수 있습니다.<br />
@@ -575,7 +587,6 @@ export default function AiDiscussionTab({ view = 'chat' }: { view?: DiscussionVi
             </div>
           );
         })}
-        <div ref={bottomRef} />
       </div>}
 
       {view === 'chat' && (

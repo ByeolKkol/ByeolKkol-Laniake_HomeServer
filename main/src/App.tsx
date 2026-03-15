@@ -104,7 +104,7 @@ export default function App() {
     appKey === 'wol' ? `WOL API: ${getWolApiBase()}` : '';
 
   return (
-    <div className="flex min-h-screen flex-col bg-app text-app-text">
+    <div className="flex h-screen overflow-hidden flex-col bg-app text-app-text">
 
       {/* ── Top nav ── */}
       <header className="shrink-0 border-b border-app-border bg-panel px-6 py-3">
@@ -129,7 +129,7 @@ export default function App() {
       </header>
 
       {/* ── Body ── */}
-      <div className="flex flex-1 gap-5 p-4 md:p-6">
+      <div className="flex flex-1 min-h-0 gap-5 p-4 md:p-6">
 
         {/* Sidebar */}
         <aside className="w-56 shrink-0 self-start rounded-2xl border border-app-border bg-panel p-4 shadow-panel">
@@ -153,7 +153,7 @@ export default function App() {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 rounded-2xl border border-app-border bg-panel p-4 shadow-panel md:p-6">
+        <main className="flex-1 min-h-0 flex flex-col overflow-y-auto rounded-2xl border border-app-border bg-panel p-4 shadow-panel md:p-6">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold">{mainTitle}</h2>
