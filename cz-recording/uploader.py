@@ -40,6 +40,7 @@ def _ensure_settings_file() -> None:
                 "client_config_backend: file",
                 f"client_config_file: '{GOOGLE_DRIVE_CREDENTIALS_FILE}'",
                 "save_credentials: true",
+                "save_credentials_backend: file",
                 f"save_credentials_file: '{GOOGLE_DRIVE_SESSION_FILE}'",
                 "get_refresh_token: true",
                 "oauth_scope:",
