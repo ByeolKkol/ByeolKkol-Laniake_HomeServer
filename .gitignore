@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+tsconfig.tsbuildinfo
+
+# 환경변수 / 시크릿
+.env
+.env.*
+*.secret
+
+# Milvus 로컬 DB
+data/
+
+# 로그
+logs/
+*.log
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/

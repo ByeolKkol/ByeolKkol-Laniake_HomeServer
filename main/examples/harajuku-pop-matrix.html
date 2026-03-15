@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Harajuku Pop Matrix</title>
+    <style>
+      :root {
+        --bg: #f9ff66;
+        --bg2: #7ff0ff;
+        --pink: #ff4fb3;
+        --violet: #8a67ff;
+        --lime: #a4ff55;
+        --black: #181313;
+        --white: #fffef9;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Pretendard", sans-serif;
+        color: var(--black);
+        background:
+          radial-gradient(circle at 20% 20%, rgba(255,255,255,.3), transparent 16%),
+          linear-gradient(135deg, var(--bg), var(--bg2));
+      }
+      .wrap {
+        width: min(1360px, calc(100vw - 18px));
+        margin: 10px auto;
+        display: grid;
+        gap: 14px;
+      }
+      .panel {
+        border: 3px solid var(--black);
+        border-radius: 28px;
+        background: var(--white);
+        box-shadow: 8px 8px 0 var(--black);
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: 1fr .9fr;
+        gap: 14px;
+        padding: 18px;
+        background:
+          linear-gradient(135deg, rgba(255,79,179,.14), transparent 35%),
+          var(--white);
+      }
+      h1,h2,h3,p { margin: 0; }
+      .label {
+        display: inline-block;
+        padding: 8px 12px;
+        border: 3px solid var(--black);
+        border-radius: 999px;
+        background: var(--pink);
+        color: white;
+        font-weight: 900;
+      }
+      h1 {
+        margin-top: 14px;
+        font-size: clamp(38px, 6vw, 88px);
+        line-height: .9;
+        letter-spacing: -.06em;
+      }
+      .lead {
+        margin-top: 14px;
+        max-width: 56ch;
+        line-height: 1.7;
+      }
+      .stickers {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+      }
+      .sticker {
+        padding: 10px 14px;
+        border: 3px solid var(--black);
+        border-radius: 16px;
+        font-weight: 900;
+      }
+      .sticker:nth-child(1) { background: var(--lime); }
+      .sticker:nth-child(2) { background: #ffc85a; }
+      .sticker:nth-child(3) { background: #ffa1db; }
+      .sticker:nth-child(4) { background: #9edcff; }
+      .poster {
+        min-height: 320px;
+        display: grid;
+        place-items: center;
+        border: 3px dashed var(--black);
+        border-radius: 24px;
+        background:
+          radial-gradient(circle at center, rgba(255,79,179,.3), transparent 24%),
+          repeating-linear-gradient(
+            45deg,
+            rgba(138,103,255,.18) 0,
+            rgba(138,103,255,.18) 14px,
+            transparent 14px,
+            transparent 28px
+          );
+      }
+      .bubble {
+        width: min(320px, 100%);
+        padding: 18px;
+        border: 3px solid var(--black);
+        border-radius: 28px;
+        background: var(--white);
+        transform: rotate(-4deg);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+      .card {
+        padding: 16px;
+        min-height: 220px;
+      }
+      .card h3 {
+        font-size: 28px;
+        line-height: 1;
+      }
+      .card p {
+        margin-top: 12px;
+        line-height: 1.6;
+      }
+      .card:nth-child(1) { background: #fff7ae; }
+      .card:nth-child(2) { background: #ffd1f0; }
+      .card:nth-child(3) { background: #cff8ff; }
+      @media (max-width: 980px) {
+        .hero, .grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="panel hero">
+        <div>
+          <div class="label">Concept F · Harajuku Pop</div>
+          <h1>팝하고 시끄럽게.</h1>
+          <p class="lead">이 방향은 얌전함을 버리고, 원색 스티커와 만화 같은 프레임으로 확 튀게 만드는 거야. 홈서버가 장난감 박스처럼 보여서 시각적 중독성이 강해.</p>
+          <div class="stickers">
+            <div class="sticker">CHZZK BOOM</div>
+            <div class="sticker">AI TALK</div>
+            <div class="sticker">WOL ZAP</div>
+            <div class="sticker">SERVER LOVE</div>
+          </div>
+        </div>
+        <div class="poster">
+          <div class="bubble">
+            <h2 style="font-size:42px;line-height:.92;">KAWAII<br />CONTROL</h2>
+            <p style="margin-top:10px;">기능은 그대로인데, 비주얼 언어를 장난감처럼 바꾸는 타입.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="panel card">
+          <h3>Live!</h3>
+          <p>라이브 중인 채널을 경고창이 아니라 팝업 스티커처럼 과감하게 띄우는 방식.</p>
+        </article>
+        <article class="panel card">
+          <h3>Heat!</h3>
+          <p>온도나 전력 상태도 재미있는 만화형 뱃지로 바꾸면 보는 맛이 확 살아.</p>
+        </article>
+        <article class="panel card">
+          <h3>Chat!</h3>
+          <p>AI 토론은 말풍선, 효과음, 표정 배지 느낌으로 연출하면 진짜 튄다.</p>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

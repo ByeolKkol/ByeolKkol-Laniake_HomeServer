@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Laniakea HomeServer Candy Diary</title>
+    <style>
+      :root {
+        --bg-a: #fff6fb;
+        --bg-b: #ffe5f3;
+        --bg-c: #e9f7ff;
+        --paper: rgba(255, 255, 255, 0.72);
+        --paper-strong: rgba(255, 255, 255, 0.88);
+        --line: rgba(255, 144, 197, 0.25);
+        --text: #54344a;
+        --muted: #8e6d83;
+        --pink: #ff7db6;
+        --hotpink: #ff4fa0;
+        --sky: #7bd4ff;
+        --mint: #8ff2d4;
+        --yellow: #ffe483;
+        --violet: #b89bff;
+        --shadow: 0 24px 50px rgba(240, 120, 170, 0.18);
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        font-family: "Pretendard", "Apple SD Gothic Neo", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 15% 20%, rgba(255, 125, 182, 0.25), transparent 22%),
+          radial-gradient(circle at 84% 16%, rgba(123, 212, 255, 0.22), transparent 24%),
+          radial-gradient(circle at 60% 80%, rgba(143, 242, 212, 0.18), transparent 24%),
+          linear-gradient(160deg, var(--bg-a), var(--bg-b) 48%, var(--bg-c));
+        overflow-x: hidden;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        background-image:
+          radial-gradient(circle, rgba(255,255,255,0.9) 0 2px, transparent 3px),
+          radial-gradient(circle, rgba(255,255,255,0.7) 0 1.5px, transparent 2px);
+        background-size: 140px 140px, 90px 90px;
+        background-position: 0 0, 30px 20px;
+        opacity: 0.65;
+        animation: sparkleDrift 22s linear infinite;
+      }
+
+      body::after {
+        background:
+          linear-gradient(transparent 92%, rgba(255, 255, 255, 0.35)),
+          repeating-linear-gradient(
+            90deg,
+            transparent 0,
+            transparent 80px,
+            rgba(255,255,255,0.06) 80px,
+            rgba(255,255,255,0.06) 81px
+          );
+        opacity: 0.35;
+      }
+
+      .float {
+        position: fixed;
+        border-radius: 50%;
+        filter: blur(2px);
+        opacity: 0.5;
+        pointer-events: none;
+        animation: bob 7s ease-in-out infinite;
+      }
+
+      .float.one {
+        width: 110px;
+        height: 110px;
+        top: 80px;
+        left: 3vw;
+        background: rgba(255, 125, 182, 0.28);
+      }
+
+      .float.two {
+        width: 78px;
+        height: 78px;
+        top: 220px;
+        right: 6vw;
+        background: rgba(123, 212, 255, 0.32);
+        animation-delay: -1.5s;
+      }
+
+      .float.three {
+        width: 92px;
+        height: 92px;
+        bottom: 70px;
+        right: 18vw;
+        background: rgba(184, 155, 255, 0.24);
+        animation-delay: -3s;
+      }
+
+      .page {
+        width: min(1360px, calc(100vw - 20px));
+        margin: 14px auto;
+        padding: 18px;
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 18px;
+        padding: 24px;
+        border-radius: 34px;
+        background: var(--paper);
+        border: 1px solid rgba(255, 255, 255, 0.65);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+      }
+
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: auto -90px -90px auto;
+        width: 240px;
+        height: 240px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255,255,255,0.45), rgba(255,125,182,0.12), transparent 72%);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.85);
+        color: var(--hotpink);
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        box-shadow: 0 10px 20px rgba(255, 125, 182, 0.12);
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--pink);
+        box-shadow: 0 0 0 8px rgba(255, 125, 182, 0.14);
+        animation: pulse 2.2s infinite;
+      }
+
+      h1, h2, h3, h4, p {
+        margin: 0;
+      }
+
+      h1 {
+        margin-top: 16px;
+        font-size: clamp(34px, 6vw, 72px);
+        line-height: 0.92;
+        letter-spacing: -0.04em;
+        max-width: 8.5ch;
+      }
+
+      .lead {
+        margin-top: 18px;
+        max-width: 56ch;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.72;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 22px;
+      }
+
+      .chip {
+        padding: 11px 14px;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.9);
+        border: 1px solid rgba(255,255,255,0.7);
+        font-weight: 700;
+        color: var(--text);
+        transform: rotate(-1deg);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .chip:nth-child(2n) {
+        transform: rotate(1.4deg);
+      }
+
+      .chip:hover {
+        transform: translateY(-3px) rotate(0deg);
+        box-shadow: 0 12px 22px rgba(255, 125, 182, 0.14);
+      }
+
+      .stack {
+        display: grid;
+        gap: 14px;
+        align-content: start;
+      }
+
+      .card {
+        position: relative;
+        overflow: hidden;
+        padding: 18px;
+        border-radius: 26px;
+        background: var(--paper-strong);
+        border: 1px solid rgba(255,255,255,0.74);
+        box-shadow: 0 16px 34px rgba(197, 117, 156, 0.12);
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+      }
+
+      .card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 20px 38px rgba(197, 117, 156, 0.18);
+      }
+
+      .sticker {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #fff;
+        background: linear-gradient(135deg, var(--pink), var(--hotpink));
+      }
+
+      .mini-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+
+      .icon {
+        display: grid;
+        place-items: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        font-size: 22px;
+        background: linear-gradient(135deg, rgba(255, 125, 182, 0.18), rgba(123, 212, 255, 0.2));
+      }
+
+      .card p {
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .bar {
+        margin-top: 14px;
+        height: 14px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(255, 125, 182, 0.12);
+      }
+
+      .bar > i {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background-size: 24px 24px;
+        animation: slide 2.4s linear infinite;
+      }
+
+      .layout {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+
+      .section {
+        padding: 20px;
+        border-radius: 30px;
+        background: var(--paper);
+        border: 1px solid rgba(255,255,255,0.7);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(14px);
+      }
+
+      .section-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .section-head h2 {
+        font-size: 28px;
+        letter-spacing: -0.03em;
+      }
+
+      .section-head span {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .diary-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .postit {
+        padding: 16px;
+        min-height: 170px;
+        border-radius: 24px;
+        box-shadow: 0 12px 24px rgba(140, 98, 125, 0.1);
+        transform-origin: center top;
+        animation: sway 5s ease-in-out infinite;
+      }
+
+      .postit:nth-child(1) {
+        background: linear-gradient(180deg, #fff7a9, #ffe581);
+        transform: rotate(-2deg);
+      }
+
+      .postit:nth-child(2) {
+        background: linear-gradient(180deg, #ffd2eb, #ffb3db);
+        transform: rotate(2deg);
+        animation-delay: -1.6s;
+      }
+
+      .postit:nth-child(3) {
+        background: linear-gradient(180deg, #d9f7ff, #bdefff);
+        transform: rotate(1deg);
+        animation-delay: -2.7s;
+      }
+
+      .postit:nth-child(4) {
+        background: linear-gradient(180deg, #dcffe7, #b4f6cb);
+        transform: rotate(-1.5deg);
+        animation-delay: -3.3s;
+      }
+
+      .postit h3 {
+        font-size: 18px;
+      }
+
+      .postit p {
+        margin-top: 10px;
+        line-height: 1.58;
+        color: rgba(78, 53, 70, 0.82);
+      }
+
+      .log-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .log {
+        display: grid;
+        grid-template-columns: 74px 1fr;
+        gap: 14px;
+        padding: 14px;
+        border-radius: 22px;
+        background: rgba(255,255,255,0.82);
+      }
+
+      .time {
+        display: grid;
+        place-items: center;
+        border-radius: 18px;
+        font-weight: 800;
+        color: #fff;
+        background: linear-gradient(135deg, var(--violet), var(--pink));
+      }
+
+      .log strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 16px;
+      }
+
+      .log p {
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .marquee {
+        margin-top: 18px;
+        overflow: hidden;
+        padding: 12px 0;
+        border-top: 1px dashed rgba(255, 125, 182, 0.35);
+        border-bottom: 1px dashed rgba(255, 125, 182, 0.35);
+      }
+
+      .marquee-track {
+        display: flex;
+        gap: 14px;
+        width: max-content;
+        animation: marquee 22s linear infinite;
+      }
+
+      .tag {
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.92);
+        color: var(--hotpink);
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .footer-note {
+        margin-top: 18px;
+        padding: 16px 18px;
+        border-radius: 22px;
+        background: rgba(255,255,255,0.72);
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .fade {
+        opacity: 0;
+        transform: translateY(18px) scale(0.98);
+        animation: fadeUp 0.8s ease forwards;
+      }
+
+      .d1 { animation-delay: 0.08s; }
+      .d2 { animation-delay: 0.16s; }
+      .d3 { animation-delay: 0.24s; }
+
+      @keyframes fadeUp {
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.14); }
+      }
+
+      @keyframes bob {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-18px); }
+      }
+
+      @keyframes sway {
+        0%, 100% { transform: rotate(var(--r, 0deg)) translateY(0); }
+        50% { transform: rotate(calc(var(--r, 0deg) * -1)) translateY(-4px); }
+      }
+
+      @keyframes slide {
+        0% { background-position: 0 0; }
+        100% { background-position: 48px 0; }
+      }
+
+      @keyframes sparkleDrift {
+        0% { transform: translateY(0); }
+        50% { transform: translateY(16px); }
+        100% { transform: translateY(0); }
+      }
+
+      @keyframes marquee {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+
+      @media (max-width: 980px) {
+        .hero,
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .page {
+          width: min(100vw - 12px, 100%);
+          padding: 8px;
+        }
+
+        .hero,
+        .section {
+          padding: 16px;
+          border-radius: 24px;
+        }
+
+        .diary-grid {
+          grid-template-columns: 1fr;
+        }
+
+        h1 {
+          max-width: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="float one"></div>
+    <div class="float two"></div>
+    <div class="float three"></div>
+
+    <main class="page">
+      <section class="hero fade">
+        <div>
+          <div class="eyebrow"><span class="dot"></span> Design Concept D</div>
+          <h1>오늘의 홈서버 다이어리</h1>
+          <p class="lead">
+            너무 엔지니어링 냄새만 나는 화면 말고, 스티커 붙인 플래너처럼 귀엽고 생기 있게 보이게 만든 샘플이야.
+            여기에 애니메이션, 말랑한 카드, 움직이는 상태바를 넣어서 보는 재미를 확실히 올렸어.
+          </p>
+          <div class="chips">
+            <div class="chip">라이브 7개 켜짐</div>
+            <div class="chip">토론방 활발해</div>
+            <div class="chip">업로드 11건 대기</div>
+            <div class="chip">오늘 분위기: 말랑</div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <article class="card">
+            <div class="sticker">Now</div>
+            <div class="mini-title">
+              <div class="icon">🎀</div>
+              <div>
+                <h3>AI Discussion Mood</h3>
+                <p>Claude, Gemini, Codex가 돌아가면서 수다 중</p>
+              </div>
+            </div>
+            <div class="bar">
+              <i style="width:92%; background-image: linear-gradient(90deg, var(--violet), var(--pink), var(--sky));"></i>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="sticker" style="background: linear-gradient(135deg, var(--sky), var(--violet));">Soft Ops</div>
+            <div class="mini-title">
+              <div class="icon">🫧</div>
+              <div>
+                <h3>Server Care</h3>
+                <p>배터리 보호 60%, Quiet 프로필, 온도는 안정권</p>
+              </div>
+            </div>
+            <div class="bar">
+              <i style="width:68%; background-image: linear-gradient(90deg, var(--mint), var(--sky), var(--yellow));"></i>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <div class="marquee fade d1">
+        <div class="marquee-track">
+          <div class="tag">sparkly dashboard</div>
+          <div class="tag">cute motion cards</div>
+          <div class="tag">diary mood timeline</div>
+          <div class="tag">soft gradients</div>
+          <div class="tag">status stickers</div>
+          <div class="tag">sparkly dashboard</div>
+          <div class="tag">cute motion cards</div>
+          <div class="tag">diary mood timeline</div>
+          <div class="tag">soft gradients</div>
+          <div class="tag">status stickers</div>
+        </div>
+      </div>
+
+      <section class="layout">
+        <article class="section fade d2">
+          <div class="section-head">
+            <h2>오늘의 포스트잇</h2>
+            <span>Sticky Overview</span>
+          </div>
+          <div class="diary-grid">
+            <div class="postit" style="--r:-2deg;">
+              <h3>CHZZK 녹화</h3>
+              <p>라이브 감지 중이고, 오늘은 일곱 채널이 활성화됐어. 업로드 큐도 예쁘게 정리해서 보여줄 수 있어.</p>
+            </div>
+            <div class="postit" style="--r:2deg;">
+              <h3>서버 컨디션</h3>
+              <p>ROG Ally는 살짝 다정한 기계처럼 보여줘도 괜찮아. 온도, 팬, 밝기를 귀엽게 의인화해도 재밌어.</p>
+            </div>
+            <div class="postit" style="--r:1deg;">
+              <h3>PC 전원 제어</h3>
+              <p>켜기/끄기를 무서운 관리자 버튼이 아니라, 방 불 켜는 느낌의 토글로 만들 수 있어.</p>
+            </div>
+            <div class="postit" style="--r:-1.5deg;">
+              <h3>AI 토론방</h3>
+              <p>누가 말하는지 말풍선이나 캐릭터 배지처럼 보여주면 훨씬 감정선이 살아나.</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="section fade d3">
+          <div class="section-head">
+            <h2>최근 이야기</h2>
+            <span>Motion Log</span>
+          </div>
+          <div class="log-list">
+            <article class="log">
+              <div class="time">13:42</div>
+              <div>
+                <strong>토론방이 엄청 활발해</strong>
+                <p>세 에이전트가 답을 주고받으면서 라운드가 올라가는 중. 이걸 채팅이 아니라 “교실 잡담”처럼 보여줘도 예쁠 거야.</p>
+              </div>
+            </article>
+            <article class="log">
+              <div class="time" style="background: linear-gradient(135deg, var(--sky), var(--mint));">13:39</div>
+              <div>
+                <strong>업로드 하나가 삐끗했어</strong>
+                <p>실패를 경고창처럼 세게 때리는 대신, 살짝 삐진 스티커나 다시 시도 배지로 표현해도 분위기를 안 깨.</p>
+              </div>
+            </article>
+            <article class="log">
+              <div class="time" style="background: linear-gradient(135deg, var(--yellow), var(--pink));">13:31</div>
+              <div>
+                <strong>게이밍 PC는 잠들었어</strong>
+                <p>전원이 꺼진 상태도 차갑게 오프라인이라기보다 “sleeping” 같은 감성으로 풀 수 있어.</p>
+              </div>
+            </article>
+          </div>
+        </article>
+      </section>
+
+      <div class="footer-note">
+        이 샘플은 “여고생이 좋아할 만한 귀엽고 동적인 분위기”에 맞춰서 만든 독립 목업이야. 키워드는 스티커 다이어리, 말랑한 반투명 카드, 파스텔 그라디언트, 살짝 통통 튀는 모션이야.
+      </div>
+    </main>
+  </body>
+</html>

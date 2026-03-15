@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Idol Social Club</title>
+    <style>
+      :root {
+        --bg: #fff9fd;
+        --bg2: #ffe9f5;
+        --card: rgba(255, 255, 255, 0.82);
+        --text: #38263a;
+        --muted: #876c88;
+        --pink: #ff68af;
+        --rose: #ff8ec3;
+        --peach: #ffc59f;
+        --sky: #87d7ff;
+        --mint: #98f3dd;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Pretendard", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 10% 10%, rgba(255,104,175,.25), transparent 22%),
+          radial-gradient(circle at 90% 12%, rgba(135,215,255,.22), transparent 22%),
+          linear-gradient(160deg, var(--bg), var(--bg2));
+      }
+      .wrap {
+        width: min(1320px, calc(100vw - 20px));
+        margin: 14px auto;
+        display: grid;
+        gap: 16px;
+      }
+      .hero, .section {
+        background: var(--card);
+        border: 1px solid rgba(255,255,255,.8);
+        border-radius: 32px;
+        box-shadow: 0 20px 50px rgba(227,118,173,.14);
+        backdrop-filter: blur(16px);
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: 1.1fr .9fr;
+        padding: 24px;
+        gap: 18px;
+        overflow: hidden;
+      }
+      .badge {
+        display: inline-block;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--pink), var(--rose));
+        color: white;
+        font-weight: 800;
+        box-shadow: 0 10px 24px rgba(255,104,175,.24);
+      }
+      h1,h2,h3,p { margin: 0; }
+      h1 {
+        margin-top: 16px;
+        font-size: clamp(36px, 6vw, 76px);
+        line-height: .92;
+        letter-spacing: -.05em;
+        max-width: 8ch;
+      }
+      .lead {
+        margin-top: 16px;
+        color: var(--muted);
+        line-height: 1.7;
+        max-width: 56ch;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      .chip {
+        padding: 11px 14px;
+        border-radius: 16px;
+        background: white;
+        font-weight: 700;
+      }
+      .phone {
+        align-self: center;
+        justify-self: center;
+        width: min(360px, 100%);
+        border-radius: 34px;
+        background: #fff;
+        padding: 14px;
+        box-shadow: 0 24px 50px rgba(74, 38, 63, .18);
+        transform: rotate(-4deg);
+      }
+      .story {
+        display: flex;
+        gap: 10px;
+        overflow: hidden;
+      }
+      .bubble {
+        min-width: 72px;
+        text-align: center;
+      }
+      .ring {
+        width: 68px;
+        height: 68px;
+        margin: 0 auto 8px;
+        border-radius: 50%;
+        padding: 3px;
+        background: linear-gradient(135deg, var(--pink), var(--peach), var(--sky));
+      }
+      .ring i {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ffd6e9, #d6fbff);
+      }
+      .feed {
+        margin-top: 14px;
+        display: grid;
+        gap: 12px;
+      }
+      .post {
+        padding: 14px;
+        border-radius: 22px;
+        background: linear-gradient(160deg, #fff7fb, #fff);
+      }
+      .post-top {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .cover {
+        height: 180px;
+        border-radius: 20px;
+        background:
+          radial-gradient(circle at 25% 30%, rgba(255,255,255,.7), transparent 12%),
+          linear-gradient(135deg, var(--pink), var(--rose) 45%, var(--sky));
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .section { padding: 20px; }
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        margin-bottom: 14px;
+      }
+      .section-head span { color: var(--muted); font-size: 13px; }
+      .cards {
+        display: grid;
+        gap: 12px;
+      }
+      .mini {
+        padding: 16px;
+        border-radius: 22px;
+        background: rgba(255,255,255,.74);
+      }
+      .mini p {
+        margin-top: 8px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+      .stat {
+        padding: 16px;
+        border-radius: 18px;
+        text-align: center;
+        background: linear-gradient(160deg, #fff, #fff5fb);
+      }
+      .stat strong { display: block; font-size: 30px; }
+      .stat span { color: var(--muted); font-size: 12px; }
+      @media (max-width: 980px) {
+        .hero, .layout { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="hero">
+        <div>
+          <div class="badge">Concept E · Idol / Insta</div>
+          <h1>홈서버를 팬페이지처럼.</h1>
+          <p class="lead">실시간 상태를 관리자 패널 말고, 아이돌 인스타 피드나 팬클럽 홈처럼 보여주는 방향이야. 카드가 예쁘고, 공유하고 싶은 화면처럼 보이는 게 핵심.</p>
+          <div class="chips">
+            <div class="chip">7 live now</div>
+            <div class="chip">debate trending</div>
+            <div class="chip">quiet mode on</div>
+            <div class="chip">11 uploads</div>
+          </div>
+        </div>
+        <div class="phone">
+          <div class="story">
+            <div class="bubble"><div class="ring"><i></i></div><small>CHZZK</small></div>
+            <div class="bubble"><div class="ring"><i style="background:linear-gradient(135deg,#dfffe9,#baf7ff)"></i></div><small>Server</small></div>
+            <div class="bubble"><div class="ring"><i style="background:linear-gradient(135deg,#f1e4ff,#ffd8ef)"></i></div><small>AI</small></div>
+            <div class="bubble"><div class="ring"><i style="background:linear-gradient(135deg,#fff4d7,#ffe0ef)"></i></div><small>WOL</small></div>
+          </div>
+          <div class="feed">
+            <div class="post">
+              <div class="post-top"><strong>@laniakea.home</strong><span>2m ago</span></div>
+              <div class="cover"></div>
+              <p style="margin-top:12px;color:var(--text);font-weight:700;">AI 토론방이 오늘 제일 핫해. Codex가 마지막 답변 정리 중.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="layout">
+        <article class="section">
+          <div class="section-head"><h2>Highlight Cards</h2><span>visual-first</span></div>
+          <div class="cards">
+            <div class="mini"><h3>CHZZK is live</h3><p>라이브 상태를 알림 카드처럼 크게 띄워서 순간적인 관심을 끌어오는 쪽이 잘 어울려.</p></div>
+            <div class="mini"><h3>Server Care Routine</h3><p>배터리 제한과 팬 프로필은 “오늘 컨디션” 같은 표현으로 보여주면 더 부드러워져.</p></div>
+            <div class="mini"><h3>PC Power Moments</h3><p>켜짐/꺼짐을 단순 불릿 대신 스토리 하이라이트처럼 다뤄도 꽤 예뻐.</p></div>
+          </div>
+        </article>
+        <article class="section">
+          <div class="section-head"><h2>Fan Metrics</h2><span>cute stats</span></div>
+          <div class="stats">
+            <div class="stat"><strong>07</strong><span>Live</span></div>
+            <div class="stat"><strong>58°</strong><span>Temp</span></div>
+            <div class="stat"><strong>11</strong><span>Queue</span></div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

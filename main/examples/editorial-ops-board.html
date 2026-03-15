@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Laniakea HomeServer Editorial Ops</title>
+    <style>
+      :root {
+        --paper: #f4eadc;
+        --paper-2: #ede0ce;
+        --ink: #191715;
+        --soft: #665e56;
+        --red: #d84b2f;
+        --blue: #174b9b;
+        --yellow: #e8be37;
+        --line: #1e1b17;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top right, rgba(216, 75, 47, 0.08), transparent 24%),
+          linear-gradient(180deg, var(--paper), var(--paper-2));
+        font-family: "SUIT", "Pretendard", "Apple SD Gothic Neo", sans-serif;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          linear-gradient(rgba(0, 0, 0, 0.03), transparent 30%),
+          repeating-linear-gradient(
+            0deg,
+            rgba(0, 0, 0, 0.018) 0,
+            rgba(0, 0, 0, 0.018) 1px,
+            transparent 1px,
+            transparent 6px
+          );
+        pointer-events: none;
+        mix-blend-mode: multiply;
+      }
+
+      .page {
+        width: min(1360px, calc(100vw - 28px));
+        margin: 14px auto;
+        border: 2px solid var(--line);
+        background: rgba(255, 252, 247, 0.88);
+        box-shadow: 10px 10px 0 rgba(25, 23, 21, 0.14);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1.35fr 0.65fr;
+      }
+
+      .cell {
+        padding: 22px;
+        border-right: 2px solid var(--line);
+        border-bottom: 2px solid var(--line);
+      }
+
+      .grid > .cell:nth-child(2n) {
+        border-right: 0;
+      }
+
+      .masthead {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 18px;
+      }
+
+      .eyebrow {
+        display: inline-block;
+        padding: 5px 8px;
+        border: 2px solid var(--line);
+        font: 800 12px/1 "IBM Plex Mono", monospace;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        background: var(--yellow);
+      }
+
+      h1, h2, h3, p {
+        margin: 0;
+      }
+
+      h1 {
+        margin-top: 12px;
+        font: 900 clamp(34px, 6vw, 88px)/0.92 "Anton", "Impact", sans-serif;
+        text-transform: uppercase;
+        max-width: 10ch;
+        letter-spacing: 0.02em;
+      }
+
+      .lede {
+        margin-top: 16px;
+        max-width: 62ch;
+        font-size: 16px;
+        line-height: 1.65;
+      }
+
+      .strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .stamp {
+        min-width: 132px;
+        padding: 12px;
+        border: 2px solid var(--line);
+        background: white;
+      }
+
+      .stamp small {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--soft);
+        font: 700 11px/1 "IBM Plex Mono", monospace;
+        text-transform: uppercase;
+      }
+
+      .stamp strong {
+        font-size: 28px;
+      }
+
+      .poster {
+        min-height: 100%;
+        display: grid;
+        place-items: center;
+        background:
+          linear-gradient(135deg, var(--red), #ff7f50 44%, var(--yellow));
+        color: #fff8f2;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .poster::before,
+      .poster::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 248, 242, 0.4);
+      }
+
+      .poster::before {
+        width: 280px;
+        height: 280px;
+        top: -100px;
+        right: -60px;
+      }
+
+      .poster::after {
+        width: 180px;
+        height: 180px;
+        bottom: -70px;
+        left: -30px;
+      }
+
+      .poster-box {
+        width: min(320px, 100%);
+        padding: 18px;
+        border: 2px solid rgba(255, 248, 242, 0.6);
+        background: rgba(25, 23, 21, 0.16);
+        backdrop-filter: blur(4px);
+      }
+
+      .poster-box h2 {
+        font: 900 48px/0.9 "Anton", "Impact", sans-serif;
+        text-transform: uppercase;
+      }
+
+      .poster-box p {
+        margin-top: 12px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .section-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 14px;
+        margin-bottom: 16px;
+      }
+
+      .section-title h3 {
+        font: 900 30px/1 "Anton", "Impact", sans-serif;
+        text-transform: uppercase;
+      }
+
+      .section-title span {
+        color: var(--soft);
+        font: 700 12px/1 "IBM Plex Mono", monospace;
+        text-transform: uppercase;
+      }
+
+      .news-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .news-card {
+        padding: 14px;
+        border: 2px solid var(--line);
+        background: rgba(255, 255, 255, 0.56);
+      }
+
+      .news-card em {
+        display: inline-block;
+        margin-bottom: 12px;
+        padding: 5px 7px;
+        border: 2px solid var(--line);
+        font: 700 11px/1 "IBM Plex Mono", monospace;
+        text-transform: uppercase;
+        font-style: normal;
+      }
+
+      .news-card p {
+        margin-top: 10px;
+        color: var(--soft);
+        line-height: 1.55;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 10px;
+      }
+
+      .entry {
+        padding: 14px;
+        border: 2px solid var(--line);
+        background: #fffdf8;
+      }
+
+      .entry strong {
+        display: block;
+        font-size: 16px;
+      }
+
+      .entry p {
+        margin-top: 8px;
+        color: var(--soft);
+        line-height: 1.5;
+      }
+
+      .entry small {
+        display: inline-block;
+        margin-top: 12px;
+        color: var(--blue);
+        font: 700 11px/1 "IBM Plex Mono", monospace;
+      }
+
+      .bar-chart {
+        display: grid;
+        gap: 10px;
+      }
+
+      .bar-row {
+        display: grid;
+        grid-template-columns: 100px 1fr auto;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .track {
+        height: 18px;
+        border: 2px solid var(--line);
+        background:
+          repeating-linear-gradient(
+            90deg,
+            rgba(0, 0, 0, 0.03) 0,
+            rgba(0, 0, 0, 0.03) 18px,
+            transparent 18px,
+            transparent 36px
+          );
+      }
+
+      .fill {
+        height: 100%;
+        background: var(--blue);
+      }
+
+      .footer {
+        padding: 18px 22px;
+        font-size: 13px;
+        color: var(--soft);
+      }
+
+      @media (max-width: 980px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .grid > .cell {
+          border-right: 0;
+        }
+
+        .news-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="grid">
+        <article class="cell">
+          <div class="masthead">
+            <div>
+              <span class="eyebrow">Design Concept B</span>
+              <h1>Editorial Ops Board</h1>
+              <p class="lede">
+                홈서버를 차가운 관리자 화면이 아니라, 오늘의 시스템 상황을 편집된 기사처럼 보여주는 방식이야.
+                상태, 로그, 이벤트를 정보지면처럼 배치해서 보는 재미를 살렸어.
+              </p>
+            </div>
+            <div class="stamp">
+              <small>Edition</small>
+              <strong>03/15</strong>
+            </div>
+          </div>
+          <div class="strip">
+            <div class="stamp"><small>Live</small><strong>07</strong></div>
+            <div class="stamp"><small>Uploads</small><strong>11</strong></div>
+            <div class="stamp"><small>Power Nodes</small><strong>05</strong></div>
+            <div class="stamp"><small>Debate</small><strong>ON</strong></div>
+          </div>
+        </article>
+        <aside class="cell poster">
+          <div class="poster-box">
+            <h2>System<br />Chronicle</h2>
+            <p>오늘 무슨 일이 있었는지 한 장짜리 주간지처럼 보여주는 감성. 숫자보다 분위기와 우선순위 전달이 강해.</p>
+          </div>
+        </aside>
+
+        <article class="cell">
+          <div class="section-title">
+            <h3>Top Stories</h3>
+            <span>Service Overview</span>
+          </div>
+          <div class="news-grid">
+            <div class="news-card">
+              <em style="background: var(--yellow)">CHZZK</em>
+              <h3>녹화 대기열이 다시 살아났어.</h3>
+              <p>라이브 감지 성공률이 안정권으로 들어왔고, 업로드 큐는 11건 처리 중이야.</p>
+            </div>
+            <div class="news-card">
+              <em style="background: #bed5ff">SERVER</em>
+              <h3>ROG Ally는 지금 Quiet 모드.</h3>
+              <p>배터리 보호 60%, CPU 온도 58°C로 밤새 돌려도 크게 무리 없는 상태야.</p>
+            </div>
+            <div class="news-card">
+              <em style="background: #ffd0c6">AI</em>
+              <h3>에이전트 토론이 4라운드째 진행 중.</h3>
+              <p>Claude와 Gemini는 동의 신호를 보냈고, Codex 응답만 남은 상황이라는 식으로 표현 가능해.</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="cell">
+          <div class="section-title">
+            <h3>Priority Timeline</h3>
+            <span>Recent Events</span>
+          </div>
+          <div class="timeline">
+            <div class="entry">
+              <strong>업로드 재시도 예약</strong>
+              <p>Google Drive 세션 응답 지연으로 한 건이 보류됐지만, 원본은 로컬에 안전하게 보관 중.</p>
+              <small>13:39 UTC</small>
+            </div>
+            <div class="entry">
+              <strong>게이밍 PC 전원 종료 완료</strong>
+              <p>SSH 종료 시퀀스가 성공했고, WOL 대상 상태는 현재 오프라인으로 반영됐어.</p>
+              <small>13:31 UTC</small>
+            </div>
+          </div>
+        </article>
+
+        <article class="cell">
+          <div class="section-title">
+            <h3>Load Lines</h3>
+            <span>Utilization</span>
+          </div>
+          <div class="bar-chart">
+            <div class="bar-row">
+              <strong>Recorder</strong>
+              <div class="track"><div class="fill" style="width: 84%"></div></div>
+              <strong>84%</strong>
+            </div>
+            <div class="bar-row">
+              <strong>WOL API</strong>
+              <div class="track"><div class="fill" style="width: 45%; background: var(--red)"></div></div>
+              <strong>45%</strong>
+            </div>
+            <div class="bar-row">
+              <strong>AI Room</strong>
+              <div class="track"><div class="fill" style="width: 91%; background: var(--yellow)"></div></div>
+              <strong>91%</strong>
+            </div>
+          </div>
+        </article>
+
+        <article class="cell">
+          <div class="section-title">
+            <h3>Why This Works</h3>
+            <span>Mood</span>
+          </div>
+          <p class="lede" style="max-width: none; margin-top: 0;">
+            이 방향은 “예쁜 관리툴”보다 “기록물 같은 대시보드”에 가까워. 홈서버가 단순한 설정 화면이 아니라,
+            하루의 자동화와 이벤트가 축적되는 개인 시스템 저널처럼 느껴지게 만드는 게 핵심이야.
+          </p>
+        </article>
+      </section>
+      <footer class="footer">
+        Independent mockup only. Original app code untouched.
+      </footer>
+    </main>
+  </body>
+</html>

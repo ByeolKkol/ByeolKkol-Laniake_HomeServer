@@ -1,0 +1,87 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: chzzk-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: byeolkkol
+      POSTGRES_DB: chzzk
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./cz-recording
+      dockerfile: Dockerfile
+    container_name: chzzk-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg2://byeolkkol@db:5432/chzzk
+    volumes:
+      - ~/recordings:/app/recordings
+      - ./cz-recording/credentials.json:/app/credentials.json
+      - ./cz-recording/google_drive_session.json:/app/google_drive_session.json
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  rog-ctrl-backend:
+    build:
+      context: ./servercontrol
+      dockerfile: Dockerfile
+    container_name: rog-ctrl-backend
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    volumes:
+      - /usr/bin/asusctl:/usr/bin/asusctl:ro
+      - /run/dbus:/run/dbus:rw
+      - /sys/class/power_supply:/sys/class/power_supply:ro
+      - /sys/class/hwmon:/sys/class/hwmon:ro
+      - /sys/class/backlight:/sys/class/backlight:rw
+      - /sys:/host/sys:ro
+      - /boot/efi:/host/boot/efi:ro
+    environment:
+      - DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket
+    privileged: true
+
+  wol-backend:
+    build:
+      context: ./wolservice
+      dockerfile: Dockerfile
+    container_name: wol-backend
+    restart: unless-stopped
+    volumes:
+      - wol_data:/app/data
+    network_mode: host
+
+  ai-discussion:
+    build:
+      context: ./ai-discussion
+      dockerfile: Dockerfile
+    container_name: ai-discussion
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://byeolkkol@chzzk-db:5432/chzzk
+    ports:
+      - "8092:8092"
+    volumes:
+      - ~/.claude:/root/.claude:ro
+      - ~/.config/gemini:/root/.config/gemini:ro
+    networks:
+      - default
+      - laniake_homeserver_default
+
+volumes:
+  db_data:
+    external: true
+    name: chzzk-recorder_db_data
+  wol_data:
+    external: true
+    name: chzzk-recorder_wol_data
+
+networks:
+  laniake_homeserver_default:
+    external: true

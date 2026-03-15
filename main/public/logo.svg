@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <path id="magicTextPath" d="M 256,48.5 A 207.5,207.5 0 1,1 256,463.5 A 207.5,207.5 0 1,1 256,48.5" />
+
+    <filter id="neonGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur1" />
+      <feGaussianBlur stdDeviation="12" result="blur2" />
+      <feMerge>
+        <feMergeNode in="blur2" />
+        <feMergeNode in="blur1" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="6" flood-color="#000000" flood-opacity="0.8"/>
+    </filter>
+
+    <radialGradient id="sigilGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#C084FC" stop-opacity="0.6"/>
+      <stop offset="60%" stop-color="#7C3AED" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#312E81" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="goldMetal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047" />
+      <stop offset="25%" stop-color="#D97706" />
+      <stop offset="50%" stop-color="#FEF08A" />
+      <stop offset="75%" stop-color="#B45309" />
+      <stop offset="100%" stop-color="#FCD34D" />
+    </linearGradient>
+
+    <linearGradient id="bluePurpleMetal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#BAE6FD" />
+      <stop offset="50%" stop-color="#9333EA" />
+      <stop offset="100%" stop-color="#0C4A6E" />
+    </linearGradient>
+
+    <radialGradient id="goldOrb" cx="30%" cy="30%" r="70%"><stop offset="0%" stop-color="#FEF08A"/><stop offset="50%" stop-color="#EAB308"/><stop offset="100%" stop-color="#713F12"/></radialGradient>
+    <radialGradient id="redOrb" cx="30%" cy="30%" r="70%"><stop offset="0%" stop-color="#FECDD3"/><stop offset="50%" stop-color="#E11D48"/><stop offset="100%" stop-color="#881337"/></radialGradient>
+    <radialGradient id="purpleOrb" cx="30%" cy="30%" r="70%"><stop offset="0%" stop-color="#E9D5FF"/><stop offset="50%" stop-color="#9333EA"/><stop offset="100%" stop-color="#4C1D95"/></radialGradient>
+    <radialGradient id="blueOrb" cx="30%" cy="30%" r="70%"><stop offset="0%" stop-color="#BAE6FD"/><stop offset="50%" stop-color="#0284C7"/><stop offset="100%" stop-color="#0C4A6E"/></radialGradient>
+    <radialGradient id="greenOrb" cx="30%" cy="30%" r="70%"><stop offset="0%" stop-color="#A7F3D0"/><stop offset="50%" stop-color="#059669"/><stop offset="100%" stop-color="#064E3B"/></radialGradient>
+    <radialGradient id="orangeOrb" cx="30%" cy="30%" r="70%"><stop offset="0%" stop-color="#FFEDD5"/><stop offset="50%" stop-color="#F97316"/><stop offset="100%" stop-color="#7C2D12"/></radialGradient>
+  </defs>
+
+  <circle cx="256" cy="256" r="220" fill="#09111D" />
+
+  <g filter="url(#dropShadow)">
+    <circle cx="256" cy="256" r="220" fill="none" stroke="#B45309" stroke-width="2" opacity="0.6"/>
+    
+    <text fill="#FEF08A" font-size="14" font-family="monospace, sans-serif" letter-spacing="6" font-weight="bold" opacity="0.9" textLength="1280" lengthAdjust="spacingAndGlyphs">
+      <textPath href="#magicTextPath" startOffset="0%">
+        ✦ ᛚᚨᚾᛁᚨᚲᛖᚨ ✦ ᛟᛈᛖᚾᚲᛚᚨᚹ ✦ ᛊᛗᚨᚱᛏ ᚺᛟᛗᛖ ✦ ᛚᚨᚾᛁᚨᚲᛖᚨ ✦ ᛟᛈᛖᚾᚲᛚᚨᚹ ✦ ᛊᛗᚨᚱᛏ ᚺᛟᛗᛖ 
+      </textPath>
+    </text>
+
+    <circle cx="256" cy="256" r="195" fill="none" stroke="url(#goldMetal)" stroke-width="8" stroke-dasharray="15 25" filter="url(#neonGlow)"/>
+    <circle cx="256" cy="256" r="195" fill="none" stroke="#FEF08A" stroke-width="1.5" />
+    <circle cx="256" cy="256" r="170" fill="none" stroke="url(#goldMetal)" stroke-width="4" opacity="0.9"/>
+  </g>
+
+  <g fill="none" stroke-width="5" filter="url(#neonGlow)" opacity="0.8">
+    <polygon points="256,106 385.9,331 126.1,331" stroke="url(#goldMetal)" />
+    <polygon points="256,406 126.1,181 385.9,181" stroke="#BAE6FD" />
+  </g>
+  <g fill="none" stroke-width="1.5" opacity="0.9">
+    <polygon points="256,106 385.9,331 126.1,331" stroke="#FFFFFF" />
+    <polygon points="256,406 126.1,181 385.9,181" stroke="#FFFFFF" />
+  </g>
+
+  <g filter="url(#dropShadow)">
+    <circle cx="256" cy="106" r="11" fill="url(#goldOrb)" />
+    <circle cx="385.9" cy="331" r="11" fill="url(#redOrb)" />
+    <circle cx="126.1" cy="331" r="11" fill="url(#purpleOrb)" />
+    <circle cx="256" cy="406" r="11" fill="url(#blueOrb)" />
+    <circle cx="126.1" cy="181" r="11" fill="url(#greenOrb)" />
+    <circle cx="385.9" cy="181" r="11" fill="url(#orangeOrb)" />
+  </g>
+
+  <g fill="#FFFFFF" opacity="0.7">
+    <ellipse cx="253" cy="102" rx="4" ry="2" transform="rotate(-30 253 102)"/>
+    <ellipse cx="382.9" cy="327" rx="4" ry="2" transform="rotate(-30 382.9 327)"/>
+    <ellipse cx="123.1" cy="327" rx="4" ry="2" transform="rotate(-30 123.1 327)"/>
+    <ellipse cx="253" cy="402" rx="4" ry="2" transform="rotate(-30 253 402)"/>
+    <ellipse cx="123.1" cy="177" rx="4" ry="2" transform="rotate(-30 123.1 177)"/>
+    <ellipse cx="382.9" cy="177" rx="4" ry="2" transform="rotate(-30 382.9 177)"/>
+  </g>
+
+  <g filter="url(#neonGlow)">
+    <circle cx="256" cy="256" r="60" fill="url(#sigilGlow)" />
+    
+    <g fill="none" stroke-width="2">
+      <circle cx="256" cy="256" r="10" fill="#E0E7FF" opacity="0.8"/>
+      <line x1="256" y1="256" x2="256" y2="230" stroke="#FFFFFF" />
+      <line x1="256" y1="256" x2="280" y2="270" stroke="#FFFFFF" />
+      <line x1="256" y1="256" x2="232" y2="270" stroke="#FFFFFF" />
+      
+      <path d="M 230,230 Q 256,215 282,230 L 292,256 Q 282,282 256,297 L 220,282 Q 230,256 230,230 Z" stroke="#FDE047" opacity="0.9" stroke-dasharray="3 5" />
+      <circle cx="256" cy="256" r="30" stroke="#60A5FA" opacity="0.7" stroke-dasharray="2 3" />
+      <circle cx="256" cy="256" r="40" stroke="#FFFFFF" opacity="0.5" stroke-dasharray="1 2" />
+      
+      <circle cx="256" cy="256" r="20" stroke="#FFFFFF" opacity="0.8"/>
+      <path d="M 252,248 L 260,264 L 250,264" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+    </g>
+
+    <circle cx="256" cy="256" r="35" fill="none" stroke="url(#goldMetal)" stroke-width="5" />
+  </g>
+</svg>

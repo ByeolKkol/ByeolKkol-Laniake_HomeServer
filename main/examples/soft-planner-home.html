@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Soft Planner Home</title>
+    <style>
+      :root {
+        --bg: #f7f4ef;
+        --paper: #fffdfa;
+        --line: #e8ddd0;
+        --text: #45372e;
+        --muted: #8b7768;
+        --sage: #dcead8;
+        --pink: #f7dce8;
+        --sky: #dfeeff;
+        --butter: #fff1c9;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Pretendard", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      .page {
+        width: min(1200px, calc(100vw - 24px));
+        margin: 24px auto;
+        display: grid;
+        gap: 18px;
+      }
+      .card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        box-shadow: 0 10px 24px rgba(110, 93, 76, .06);
+      }
+      .hero {
+        padding: 26px;
+        display: grid;
+        grid-template-columns: 1.05fr .95fr;
+        gap: 18px;
+      }
+      .tag {
+        display: inline-block;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--pink);
+        color: var(--text);
+        font-weight: 700;
+      }
+      h1,h2,h3,p { margin: 0; }
+      h1 {
+        margin-top: 14px;
+        font-size: clamp(32px, 5vw, 62px);
+        line-height: .98;
+        letter-spacing: -.04em;
+      }
+      .lead {
+        margin-top: 14px;
+        color: var(--muted);
+        line-height: 1.75;
+        max-width: 54ch;
+      }
+      .list {
+        margin-top: 18px;
+        display: grid;
+        gap: 10px;
+      }
+      .todo {
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: #fff;
+        border: 1px solid var(--line);
+      }
+      .planner {
+        display: grid;
+        gap: 12px;
+      }
+      .note {
+        padding: 18px;
+        border-radius: 22px;
+      }
+      .note:nth-child(1) { background: var(--sage); }
+      .note:nth-child(2) { background: var(--sky); }
+      .note:nth-child(3) { background: var(--butter); }
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      .section {
+        padding: 22px;
+      }
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        margin-bottom: 14px;
+      }
+      .section-head span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .rows {
+        display: grid;
+        gap: 10px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 96px 1fr auto;
+        gap: 10px;
+        align-items: center;
+        padding: 12px 14px;
+        border-radius: 18px;
+        background: #fff;
+        border: 1px solid var(--line);
+      }
+      .bar {
+        height: 10px;
+        border-radius: 999px;
+        background: #f1ebe3;
+        overflow: hidden;
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: #c7b29b;
+      }
+      .journal {
+        display: grid;
+        gap: 10px;
+      }
+      .entry {
+        padding: 14px;
+        border-left: 4px solid #d7c3b0;
+        border-radius: 16px;
+        background: #fff;
+      }
+      .entry p {
+        margin-top: 8px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      @media (max-width: 980px) {
+        .hero, .layout { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="card hero">
+        <div>
+          <div class="tag">Concept G · Soft Planner</div>
+          <h1>차분하고 예쁜 플래너처럼.</h1>
+          <p class="lead">이 방향은 동적인 장식보다 정리감이 중요해. 여고생 감성이어도 과하지 않고, 매일 열어보기에 부담 없는 조용한 플래너 톤이야.</p>
+          <div class="list">
+            <div class="todo">오늘 라이브 채널 7개 확인하기</div>
+            <div class="todo">업로드 재시도 1건 체크하기</div>
+            <div class="todo">AI 토론방 로그 읽어보기</div>
+          </div>
+        </div>
+        <div class="planner">
+          <div class="note"><strong>Morning</strong><p style="margin-top:8px;color:var(--muted);">서버 체온은 58°C, 조용하고 안정적이야.</p></div>
+          <div class="note"><strong>Afternoon</strong><p style="margin-top:8px;color:var(--muted);">토론방은 활발하고, Codex가 정리 멘트를 준비 중.</p></div>
+          <div class="note"><strong>Tonight</strong><p style="margin-top:8px;color:var(--muted);">배터리 보호 60% 유지. 게이밍 PC는 쉬는 중.</p></div>
+        </div>
+      </section>
+
+      <section class="layout">
+        <article class="card section">
+          <div class="section-head"><h2>Today Status</h2><span>gentle metrics</span></div>
+          <div class="rows">
+            <div class="row"><strong>CHZZK</strong><div class="bar"><i style="width:82%"></i></div><span>82%</span></div>
+            <div class="row"><strong>Server</strong><div class="bar"><i style="width:61%"></i></div><span>61%</span></div>
+            <div class="row"><strong>AI Room</strong><div class="bar"><i style="width:90%"></i></div><span>90%</span></div>
+          </div>
+        </article>
+        <article class="card section">
+          <div class="section-head"><h2>Little Journal</h2><span>soft notes</span></div>
+          <div class="journal">
+            <div class="entry"><strong>업로드는 조금 느려</strong><p>실패했다기보다 잠깐 멈춘 느낌으로 표현해서 화면 긴장을 낮추는 방향.</p></div>
+            <div class="entry"><strong>게이밍 PC는 쉬는 중</strong><p>offline 대신 쉬는 중, sleeping 같은 말이 이 톤에 잘 맞아.</p></div>
+            <div class="entry"><strong>AI들이 오늘 말 많아</strong><p>토론 흐름도 대결보다 대화 노트처럼 보여주면 예뻐.</p></div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>
