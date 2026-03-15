@@ -1,4 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import rehypeHighlight from 'rehype-highlight';
+import 'katex/dist/katex.min.css';
+import 'highlight.js/styles/github-dark.css';
 import { getDiscussionHost } from './settingsStore';
 
 interface ChatMessage {
@@ -548,7 +555,22 @@ export default function AiDiscussionTab({ view = 'chat' }: { view?: DiscussionVi
                     </span>
                   )}
                 </p>
-                <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                <div className="prose prose-sm prose-invert max-w-none leading-relaxed
+                  [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
+                  prose-code:before:content-none prose-code:after:content-none
+                  prose-pre:bg-transparent prose-pre:p-0
+                  [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-app-border [&_pre]:!bg-[#0d1117] [&_pre]:text-xs
+                  [&_table]:text-xs [&_th]:border [&_th]:border-app-border [&_th]:px-2 [&_th]:py-1
+                  [&_td]:border [&_td]:border-app-border [&_td]:px-2 [&_td]:py-1
+                  [&_a]:text-brand [&_a]:no-underline [&_a:hover]:underline
+                  [&_blockquote]:border-l-brand [&_blockquote]:text-app-muted">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkMath]}
+                    rehypePlugins={[rehypeKatex, rehypeHighlight]}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
+                </div>
               </div>
             </div>
           );
