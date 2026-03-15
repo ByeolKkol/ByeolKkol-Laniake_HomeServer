@@ -549,15 +549,15 @@ export default function AiDiscussionTab({ view = 'chat' }: { view?: DiscussionVi
               {/* 아바타 */}
               <div className="shrink-0 mt-1">
                 {avatar ? (
-                  <img src={avatar} className="h-9 w-9 rounded-full object-cover border border-app-border" />
+                  <img src={avatar} className="h-16 w-16 rounded-full object-cover border border-app-border" />
                 ) : (
-                  <div className={`h-9 w-9 rounded-full border flex items-center justify-center text-xs font-bold ${style.avatarBg}`}>
+                  <div className={`h-16 w-16 rounded-full border flex items-center justify-center text-sm font-bold ${style.avatarBg}`}>
                     {getLabel(msg.sender).charAt(0)}
                   </div>
                 )}
               </div>
               {/* 말풍선 */}
-              <div className={`flex-1 rounded-xl border px-4 py-3 text-sm ${style.bg}`}>
+              <div className={`max-w-[70%] rounded-xl border px-4 py-3 text-sm ${style.bg}`}>
                 <p className={`mb-1 text-xs font-semibold ${style.color}`}>
                   {getLabel(msg.sender)}
                   {msg.streaming && <span className="ml-1 animate-pulse">▍</span>}
