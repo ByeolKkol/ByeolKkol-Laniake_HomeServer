@@ -58,3 +58,17 @@ class SystemMetrics(BaseModel):
     memory: MemoryInfo
     disks: list[DiskInfo]
     network: NetworkInfo
+
+
+class MetricPoint(BaseModel):
+    ts: float
+    cpu_pct: float
+    mem_pct: float
+    cpu_temp: float | None = None
+    net_recv_bps: float | None = None
+    net_sent_bps: float | None = None
+
+
+class MetricsHistoryResponse(BaseModel):
+    minutes: int
+    points: list[MetricPoint]

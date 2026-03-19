@@ -35,9 +35,7 @@ def _utc_now() -> datetime:
 
 
 def _ensure_settings_file() -> None:
-    if GOOGLE_DRIVE_SETTINGS_FILE.exists():
-        return
-
+    # 항상 덮어씌워서 누락된 키가 없도록 보장
     GOOGLE_DRIVE_SETTINGS_FILE.write_text(
         "\n".join(
             [

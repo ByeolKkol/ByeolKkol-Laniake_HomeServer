@@ -45,6 +45,9 @@ services:
       - /boot/efi:/host/boot/efi:ro
     environment:
       - DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket
+      - DATABASE_URL=postgresql://byeolkkol@db:5432/chzzk
+    depends_on:
+      - db
     privileged: true
 
   wol-backend:
@@ -73,6 +76,7 @@ services:
     networks:
       - default
       - laniake_homeserver_default
+
 
 volumes:
   db_data:

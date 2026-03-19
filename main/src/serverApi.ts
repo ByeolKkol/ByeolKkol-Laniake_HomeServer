@@ -93,3 +93,21 @@ export interface SystemMetrics {
 export function fetchMetrics(): Promise<SystemMetrics> {
   return request<SystemMetrics>('/metrics');
 }
+
+export interface MetricPoint {
+  ts: number;
+  cpu_pct: number;
+  mem_pct: number;
+  cpu_temp: number | null;
+  net_recv_bps: number | null;
+  net_sent_bps: number | null;
+}
+
+export interface MetricsHistoryResponse {
+  minutes: number;
+  points: MetricPoint[];
+}
+
+export function fetchMetricsHistory(minutes: number): Promise<MetricsHistoryResponse> {
+  return request<MetricsHistoryResponse>(`/metrics/history?minutes=${minutes}`);
+}

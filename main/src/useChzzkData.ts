@@ -3,6 +3,7 @@ import {
   createChannel,
   deleteChannel,
   deleteRecording,
+  deleteUploadLog,
   fetchActiveRecordings,
   fetchChannels,
   fetchCookies,
@@ -187,6 +188,26 @@ export function useChzzkData() {
     finally { setDeletingRecordingId(null); }
   };
 
+  const handleBulkDeleteRecordings = async (ids: number[]): Promise<void> => {
+    if (!window.confirm(`${ids.length}개 녹화를 삭제하시겠습니까? 파일도 함께 삭제됩니다.`)) return;
+    setMessage('');
+    try {
+      await Promise.all(ids.map((id) => deleteRecording(id)));
+      setMessage(`${ids.length}개 녹화가 삭제되었습니다.`);
+      await refreshAll();
+    } catch (error) { setMessage((error as Error).message); }
+  };
+
+  const handleBulkDeleteUploads = async (ids: number[]): Promise<void> => {
+    if (!window.confirm(`${ids.length}개 업로드 로그를 삭제하시겠습니까?`)) return;
+    setMessage('');
+    try {
+      await Promise.all(ids.map((id) => deleteUploadLog(id)));
+      setMessage(`${ids.length}개 업로드 로그가 삭제되었습니다.`);
+      await refreshAll();
+    } catch (error) { setMessage((error as Error).message); }
+  };
+
   return {
     loading, message, health, channels, activeRecordings, recordings, uploads, activeUploads,
     globalCookieStatus, googleDriveStatus, channelQualityDrafts, setChannelQualityDrafts,
@@ -196,5 +217,6 @@ export function useChzzkData() {
     handleAddChannel, handleDeleteChannel, handleToggleChannel, handleSaveChannelQuality,
     handleManualRecord, handleSaveCookies, handleUploadDriveCredentials,
     handleRetryUpload, handleStopRecording, handleDeleteRecording,
+    handleBulkDeleteRecordings, handleBulkDeleteUploads,
   };
 }

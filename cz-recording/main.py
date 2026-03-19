@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 RECORDINGS_OUTPUT_DIR = os.getenv("RECORDINGS_OUTPUT_DIR", "./recordings")
 GOOGLE_DRIVE_PARENT_ID = os.getenv("GOOGLE_DRIVE_PARENT_ID")
 MAX_GOOGLE_DRIVE_CREDENTIALS_SIZE = 2 * 1024 * 1024
-ALLOWED_QUALITIES = {"best", "1080p", "720p", "480p", "360p"}
+ALLOWED_QUALITIES = {"best", "1080p60", "1080p", "720p60", "720p", "480p", "360p", "worst"}
 
 
 class ChannelCreate(BaseModel):
@@ -821,6 +821,18 @@ async def proxy_thumbnail(url: str = Query(min_length=1, max_length=2048)) -> Re
     except Exception as exc:
         logger.warning("Thumbnail proxy failed url=%s error=%s", url, exc)
         raise HTTPException(status_code=502, detail="Thumbnail proxy failed") from exc
+
+
+@app.delete("/upload/{upload_log_id}")
+def delete_upload_log(upload_log_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
+    log = db.query(UploadLog).filter(UploadLog.id == upload_log_id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Upload log not found")
+    if upload_log_id in app.state.upload_tasks:
+        raise HTTPException(status_code=409, detail="Cannot delete an active upload")
+    db.delete(log)
+    db.commit()
+    return {"message": "Upload log deleted"}
 
 
 @app.post("/recordings/{recording_id}/retry-upload")

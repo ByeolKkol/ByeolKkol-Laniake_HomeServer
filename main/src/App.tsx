@@ -96,6 +96,7 @@ export default function App() {
     handleAddChannel, handleDeleteChannel, handleToggleChannel, handleSaveChannelQuality,
     handleManualRecord, handleSaveCookies, handleUploadDriveCredentials,
     handleRetryUpload, handleStopRecording, handleDeleteRecording,
+    handleBulkDeleteRecordings, handleBulkDeleteUploads,
   } = useChzzkData();
 
   const mainTitle =
@@ -208,6 +209,7 @@ export default function App() {
                 retryingRecordingId={retryingRecordingId} deletingRecordingId={deletingRecordingId}
                 onRetryUpload={(id) => void handleRetryUpload(id)}
                 onDeleteRecording={(id) => void handleDeleteRecording(id)}
+                onBulkDelete={(ids) => void handleBulkDeleteRecordings(ids)}
               />
             )}
             {appKey === 'chzzk' && activeTab === 'live' && (
@@ -228,7 +230,10 @@ export default function App() {
                 onManualRecord={(id) => void handleManualRecord(id)}
               />
             )}
-            {appKey === 'chzzk' && activeTab === 'uploads' && <ChzzkUploadsTab uploads={uploads} />}
+            {appKey === 'chzzk' && activeTab === 'uploads' && (
+              <ChzzkUploadsTab uploads={uploads} recordings={recordings}
+                onBulkDelete={(ids) => void handleBulkDeleteUploads(ids)} />
+            )}
           </Suspense>
         </main>
       </div>

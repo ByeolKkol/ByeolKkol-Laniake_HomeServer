@@ -122,6 +122,11 @@ export async function fetchUploadStatus(): Promise<UploadStatusResponse> {
   return parseJson(response);
 }
 
+export async function deleteUploadLog(uploadLogId: number): Promise<{ message: string }> {
+  const response = await fetch(`${getApiBase()}/upload/${uploadLogId}`, { method: 'DELETE' });
+  return parseJson(response);
+}
+
 export async function retryRecordingUpload(recordingId: number): Promise<{ message: string }> {
   const response = await fetch(`${getApiBase()}/recordings/${recordingId}/retry-upload`, {
     method: 'POST'
