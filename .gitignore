@@ -17,6 +17,7 @@ tsconfig.tsbuildinfo
 .env
 .env.*
 *.secret
+cz-recording/credentials.json
 
 # Milvus 로컬 DB
 data/
