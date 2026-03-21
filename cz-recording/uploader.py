@@ -153,7 +153,6 @@ async def upload_to_drive(
     db_factory: Any,
     upload_log_id: int,
     file_path: str,
-    runtime_status: dict[int, dict[str, Any]],
     parent_folder_id: str | None = None,
 ) -> None:
     db = db_factory()
@@ -166,14 +165,6 @@ async def upload_to_drive(
             log.status = "failed"
             log.message = f"File not found: {file_path}"
             db.commit()
-            runtime_status[upload_log_id] = {
-                "upload_log_id": upload_log_id,
-                "recording_id": log.recording_id,
-                "status": log.status,
-                "message": log.message,
-                "progress_percent": 0,
-                "updated_at": _utc_now(),
-            }
             return
 
         file_size = os.path.getsize(file_path)
@@ -184,17 +175,6 @@ async def upload_to_drive(
         log.bytes_total = file_size
         log.message = "Uploading to Google Drive"
         db.commit()
-
-        runtime_status[upload_log_id] = {
-            "upload_log_id": upload_log_id,
-            "recording_id": log.recording_id,
-            "status": "uploading",
-            "message": log.message,
-            "progress_percent": 0,
-            "bytes_uploaded": 0,
-            "bytes_total": file_size,
-            "updated_at": _utc_now(),
-        }
 
         # 청크 업로드 (10MB 단위, 진행률 실시간 업데이트)
         gauth = await asyncio.to_thread(_build_gauth)
@@ -227,20 +207,9 @@ async def upload_to_drive(
                 percent = int(upload_status.progress() * 100)
                 if percent != last_percent:
                     last_percent = percent
-                    bytes_uploaded = int(file_size * upload_status.progress())
                     log.progress_percent = percent
-                    log.bytes_uploaded = bytes_uploaded
+                    log.bytes_uploaded = int(file_size * upload_status.progress())
                     db.commit()
-                    runtime_status[upload_log_id] = {
-                        "upload_log_id": upload_log_id,
-                        "recording_id": log.recording_id,
-                        "status": "uploading",
-                        "message": log.message,
-                        "progress_percent": percent,
-                        "bytes_uploaded": bytes_uploaded,
-                        "bytes_total": file_size,
-                        "updated_at": _utc_now(),
-                    }
 
         file_id = response.get("id")
         file_url = response.get("webViewLink")
@@ -264,19 +233,6 @@ async def upload_to_drive(
                 logger.info(f"Local file removed after successful upload: {file_path}")
         except Exception as e:
             logger.error(f"Failed to remove local file: {file_path}, error: {e}")
-
-        runtime_status[upload_log_id] = {
-            "upload_log_id": upload_log_id,
-            "recording_id": log.recording_id,
-            "status": "completed",
-            "message": log.message,
-            "progress_percent": 100,
-            "bytes_uploaded": file_size,
-            "bytes_total": file_size,
-            "drive_file_id": log.drive_file_id,
-            "drive_file_url": log.drive_file_url,
-            "updated_at": _utc_now(),
-        }
     except Exception as exc:
         logger.exception("Upload task crashed upload_log_id=%s", upload_log_id)
         try:
@@ -285,17 +241,6 @@ async def upload_to_drive(
                 log.status = "failed"
                 log.message = str(exc)[-2000:] or "Upload task crashed unexpectedly"
                 db.commit()
-
-                runtime_status[upload_log_id] = {
-                    "upload_log_id": upload_log_id,
-                    "recording_id": log.recording_id,
-                    "status": log.status,
-                    "message": log.message,
-                    "progress_percent": log.progress_percent,
-                    "bytes_uploaded": log.bytes_uploaded,
-                    "bytes_total": log.bytes_total,
-                    "updated_at": _utc_now(),
-                }
         except Exception:
             logger.exception("Failed to persist upload crash status upload_log_id=%s", upload_log_id)
     finally:

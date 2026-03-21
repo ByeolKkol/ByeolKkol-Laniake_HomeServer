@@ -106,8 +106,9 @@ const ServerMonitoringTab = (): JSX.Element => {
   const recvPoints = useMemo(() => history.flatMap((p) => p.net_recv_bps != null ? [p.net_recv_bps] : []), [history]);
   const sentPoints = useMemo(() => history.flatMap((p) => p.net_sent_bps != null ? [p.net_sent_bps] : []), [history]);
 
-  const startLabel = history.length > 0 ? fmtTs(history[0].ts) : '';
-  const endLabel   = history.length > 0 ? fmtTs(history[history.length - 1].ts) : '';
+  const startLabel   = history.length > 0 ? fmtTs(history[0].ts) : '';
+  const endLabel     = history.length > 0 ? fmtTs(history[history.length - 1].ts) : '';
+  const historyTs    = useMemo(() => history.map((p) => p.ts), [history]);
 
   const mem    = metrics?.memory;
   const disks  = metrics?.disks ?? [];
@@ -177,7 +178,7 @@ const ServerMonitoringTab = (): JSX.Element => {
             </div>
           </div>
           <HistoryChart points={cpuPoints} color={usageColorHex(cpuPct)}
-            yMin={0} yMax={100} unit="%" startLabel={startLabel} endLabel={endLabel} />
+            yMin={0} yMax={100} unit="%" timestamps={historyTs} />
         </article>
 
         <article className="rounded-xl border border-app-border bg-app-soft p-4">
@@ -199,7 +200,7 @@ const ServerMonitoringTab = (): JSX.Element => {
             </div>
           </div>
           <HistoryChart points={tempPoints} color={tempColorHex(temp)}
-            yMin={0} yMax={100} unit="°" startLabel={startLabel} endLabel={endLabel} />
+            yMin={0} yMax={100} unit="°" timestamps={historyTs} />
         </article>
 
         {/* 메모리 */}
@@ -229,7 +230,7 @@ const ServerMonitoringTab = (): JSX.Element => {
             </div>
           </div>
           <HistoryChart points={memPoints} color={usageColorHex(memPct)}
-            yMin={0} yMax={100} unit="%" startLabel={startLabel} endLabel={endLabel} />
+            yMin={0} yMax={100} unit="%" timestamps={historyTs} />
         </article>
 
         {/* 네트워크 + 배터리 */}

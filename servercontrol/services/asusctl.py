@@ -1,6 +1,9 @@
 import asyncio
 import re
 
+_RE_BATTERY = re.compile(r"(\d+)%")
+_RE_PROFILE = re.compile(r"Active profile:\s*(\w+)")
+
 
 async def _run(*args: str) -> str:
     """asusctl 명령 실행 후 stdout 반환. 실패 시 RuntimeError."""
@@ -19,8 +22,7 @@ async def get_battery_limit() -> int | None:
     """현재 배터리 충전 제한(%) 조회."""
     try:
         output = await _run("battery", "info")
-        # "Current battery charge limit: 60%"
-        match = re.search(r"(\d+)%", output)
+        match = _RE_BATTERY.search(output)
         return int(match.group(1)) if match else None
     except Exception:
         return None
@@ -35,8 +37,7 @@ async def get_profile() -> str | None:
     """현재 활성 팬 프로필 조회."""
     try:
         output = await _run("profile", "get")
-        # "Active profile: Quiet"
-        match = re.search(r"Active profile:\s*(\w+)", output)
+        match = _RE_PROFILE.search(output)
         return match.group(1) if match else None
     except Exception:
         return None

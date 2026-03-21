@@ -85,13 +85,17 @@ interface HistoryChartProps {
   yMin: number;
   yMax: number;
   unit?: string;
-  startLabel?: string;
-  endLabel?: string;
+  timestamps?: number[];
 }
+
+const _fmtTime = (ts: number): string => {
+  const d = new Date(ts * 1000);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
 
 /** 고정 범위 + 그리드 이력 차트 */
 export const HistoryChart = ({
-  points, color, yMin, yMax, unit = '', startLabel, endLabel,
+  points, color, yMin, yMax, unit = '', timestamps,
 }: HistoryChartProps): JSX.Element => {
   if (points.length < 2)
     return (
@@ -117,33 +121,50 @@ export const HistoryChart = ({
   const last = coords[coords.length - 1];
   const gid = `hc${color.replace(/\W/g, '')}`;
 
-  const gridTicks = [0.25, 0.5, 0.75].map((f) => ({
+  const hGridTicks = [0.25, 0.5, 0.75].map((f) => ({
     value: Math.round(yMin + range * f),
     y: toY(yMin + range * f),
   }));
 
+  // 세로 격자: 25%, 50%, 75% 위치
+  const vTicks = [0.25, 0.5, 0.75].map((f) => {
+    const x = PX + f * (W - PX * 2);
+    const idx = Math.round(f * (points.length - 1));
+    const label = timestamps ? _fmtTime(timestamps[idx]) : '';
+    return { x, label };
+  });
+
+  // x축 레이블: SVG 내 격자 x 위치를 % 로 환산 (SVG width 기준)
+  const xLabels = timestamps
+    ? [
+        { label: _fmtTime(timestamps[0]),                     pct: 0,    align: 'left'   as const },
+        ...vTicks.map(({ x, label }) => ({ label, pct: (x / W) * 100, align: 'center' as const })),
+        { label: _fmtTime(timestamps[timestamps.length - 1]), pct: 100,  align: 'right'  as const },
+      ]
+    : [];
+
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex gap-1">
-        {/* Y축 레이블 */}
-        <div className="relative w-7 shrink-0 select-none">
-          <span className="absolute right-0 translate-y-[-50%] text-[9px] text-app-muted"
-            style={{ top: `${(toY(yMax) / H) * 100}%` }}>
-            {yMax}{unit}
+    <div className="flex gap-1">
+      {/* Y축 레이블 */}
+      <div className="relative w-7 shrink-0 select-none">
+        <span className="absolute right-0 translate-y-[-50%] text-[9px] text-app-muted"
+          style={{ top: `${(toY(yMax) / H) * 100}%` }}>
+          {yMax}{unit}
+        </span>
+        {hGridTicks.map(({ value, y }) => (
+          <span key={value} className="absolute right-0 translate-y-[-50%] text-[9px] text-app-muted"
+            style={{ top: `${(y / H) * 100}%` }}>
+            {value}
           </span>
-          {gridTicks.map(({ value, y }) => (
-            <span key={value} className="absolute right-0 translate-y-[-50%] text-[9px] text-app-muted"
-              style={{ top: `${(y / H) * 100}%` }}>
-              {value}
-            </span>
-          ))}
-          <span className="absolute right-0 translate-y-[-50%] text-[9px] text-app-muted"
-            style={{ top: `${(toY(yMin) / H) * 100}%` }}>
-            {yMin}{unit}
-          </span>
-        </div>
-        {/* 차트 */}
-        <svg viewBox={`0 0 ${W} ${H}`} className="h-28 flex-1" preserveAspectRatio="none">
+        ))}
+        <span className="absolute right-0 translate-y-[-50%] text-[9px] text-app-muted"
+          style={{ top: `${(toY(yMin) / H) * 100}%` }}>
+          {yMin}{unit}
+        </span>
+      </div>
+      {/* 차트 + X축 레이블 */}
+      <div className="flex flex-1 flex-col gap-0.5">
+        <svg viewBox={`0 0 ${W} ${H}`} className="h-28 w-full" preserveAspectRatio="none">
           <defs>
             <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={color} stopOpacity="0.3" />
@@ -151,8 +172,13 @@ export const HistoryChart = ({
             </linearGradient>
           </defs>
           {/* 수평 그리드 */}
-          {gridTicks.map(({ value, y }) => (
+          {hGridTicks.map(({ value, y }) => (
             <line key={value} x1={0} y1={y} x2={W} y2={y}
+              stroke="#ffffff" strokeOpacity="0.08" strokeWidth="1" strokeDasharray="4,4" />
+          ))}
+          {/* 수직 그리드 */}
+          {vTicks.map(({ x }) => (
+            <line key={x} x1={x} y1={0} x2={x} y2={H}
               stroke="#ffffff" strokeOpacity="0.08" strokeWidth="1" strokeDasharray="4,4" />
           ))}
           {/* 최상단·최하단 경계선 */}
@@ -165,14 +191,21 @@ export const HistoryChart = ({
             strokeLinecap="round" strokeLinejoin="round" />
           <circle cx={last.x} cy={last.y} r="2.5" fill={color} />
         </svg>
+        {/* X축 시간 레이블 — SVG 너비 기준 % 정렬 */}
+        {xLabels.length > 0 && (
+          <div className="relative h-3 select-none">
+            {xLabels.map(({ label, pct, align }) => (
+              <span key={pct} className="absolute text-[9px] text-app-muted"
+                style={{
+                  left: `${pct}%`,
+                  transform: align === 'center' ? 'translateX(-50%)' : align === 'right' ? 'translateX(-100%)' : 'none',
+                }}>
+                {label}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
-      {/* X축 시간 레이블 */}
-      {(startLabel || endLabel) && (
-        <div className="flex justify-between pl-8 text-[9px] text-app-muted">
-          <span>{startLabel}</span>
-          <span>{endLabel}</span>
-        </div>
-      )}
     </div>
   );
 };

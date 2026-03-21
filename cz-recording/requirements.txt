@@ -1,6 +1,8 @@
 fastapi
 uvicorn
+cryptography
 sqlalchemy
+alembic
 psycopg2-binary
 apscheduler
 httpx

@@ -12,20 +12,25 @@ services:
 
   backend:
     build:
-      context: ./cz-recording
+      context: ./backend
       dockerfile: Dockerfile
     container_name: chzzk-backend
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql+psycopg2://byeolkkol@db:5432/chzzk
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://192.168.1.8:8080}
     volumes:
       - ~/recordings:/app/recordings
-      - ./cz-recording/credentials.json:/app/credentials.json
+      - ./cz-recording/credentials.json:/app/credentials.json:ro
       - ./cz-recording/google_drive_session.json:/app/google_drive_session.json
     ports:
       - "8000:8000"
     depends_on:
       - db
+    networks:
+      - default
+      - laniake_homeserver_default
 
   rog-ctrl-backend:
     build:
@@ -56,9 +61,42 @@ services:
       dockerfile: Dockerfile
     container_name: wol-backend
     restart: unless-stopped
+    environment:
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://192.168.1.8:8080}
     volumes:
       - wol_data:/app/data
     network_mode: host
+
+  iot-backend:
+    build:
+      context: ./iot-backend
+      dockerfile: Dockerfile
+    container_name: iot-backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://byeolkkol@db:5432/chzzk
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://192.168.1.8:8080}
+    ports:
+      - "8093:8093"
+    networks:
+      - laniake_homeserver_default
+
+  tapo-backend:
+    build:
+      context: ./tapo-backend
+      dockerfile: Dockerfile
+    container_name: tapo-backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://byeolkkol@db:5432/chzzk
+      - TAPO_USERNAME=${TAPO_USERNAME:-}
+      - TAPO_PASSWORD=${TAPO_PASSWORD:-}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://192.168.1.8:8080}
+    ports:
+      - "8094:8094"
+    networks:
+      - laniake_homeserver_default
 
   ai-discussion:
     build:

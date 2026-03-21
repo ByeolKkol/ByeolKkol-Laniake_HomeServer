@@ -23,7 +23,8 @@ def _strip_ansi(text: str) -> str:
 
 def _connect(ip: str, port: int, user: str, password: str) -> paramiko.SSHClient:
     client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.WarningPolicy())
     client.connect(
         ip, port=port, username=user, password=password,
         timeout=10, look_for_keys=False, allow_agent=False, auth_timeout=10,

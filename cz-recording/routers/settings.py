@@ -1,0 +1,46 @@
+from __future__ import annotations
+
+import json
+from typing import Any
+
+from fastapi import APIRouter, File, HTTPException, UploadFile
+
+from uploader import (
+    GOOGLE_DRIVE_CREDENTIALS_FILE,
+    ensure_drive_settings_file,
+    get_drive_connection_status,
+)
+
+router = APIRouter(prefix="/settings", tags=["settings"])
+
+MAX_GOOGLE_DRIVE_CREDENTIALS_SIZE = 2 * 1024 * 1024
+
+
+@router.get("/google-drive")
+def get_google_drive_settings() -> dict[str, Any]:
+    return {"item": get_drive_connection_status()}
+
+
+@router.post("/google-drive")
+async def upload_google_drive_credentials(credentials_file: UploadFile = File(...)) -> dict[str, Any]:
+    raw = await credentials_file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="credentials.json is empty")
+    if len(raw) > MAX_GOOGLE_DRIVE_CREDENTIALS_SIZE:
+        raise HTTPException(status_code=400, detail="credentials.json is too large")
+
+    try:
+        parsed = json.loads(raw.decode("utf-8"))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="credentials.json must be valid UTF-8 JSON") from exc
+    if not isinstance(parsed, dict):
+        raise HTTPException(status_code=400, detail="credentials.json must be a JSON object")
+
+    GOOGLE_DRIVE_CREDENTIALS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    GOOGLE_DRIVE_CREDENTIALS_FILE.write_text(json.dumps(parsed, indent=2), encoding="utf-8")
+    ensure_drive_settings_file()
+
+    return {
+        "message": "Google Drive credentials uploaded",
+        "item": get_drive_connection_status(),
+    }

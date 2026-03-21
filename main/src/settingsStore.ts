@@ -1,5 +1,5 @@
 const STORAGE_KEY = 'server_ip';
-const DEFAULT_IP = '192.168.1.89';
+const DEFAULT_IP = '192.168.1.8';
 const DISCUSSION_HOST_KEY = 'discussion_host';
 
 export function getServerIp(): string {
@@ -32,4 +32,12 @@ export function setDiscussionHost(host: string): void {
 
 export function getDiscussionWsBase(): string {
   return `ws://${getDiscussionHost()}/ws/discuss`;
+}
+
+export function getIotApiBase(): string {
+  return `http://${getServerIp()}:8093`;
+}
+
+export function getTapoApiBase(): string {
+  return `http://${getServerIp()}:8094`;
 }
