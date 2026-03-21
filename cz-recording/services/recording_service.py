@@ -79,6 +79,9 @@ async def finalize_recording_task(
                     except OSError:
                         recording.file_size_bytes = None
                 db.commit()
+            scanner = getattr(app.state, "scanner", None)
+            if scanner:
+                scanner.reset_live_state(channel_external_id)
             return
 
         recording = db.query(Recording).filter(Recording.id == recording_id).first()
@@ -95,6 +98,11 @@ async def finalize_recording_task(
         except OSError:
             recording.file_size_bytes = None
         db.commit()
+
+        if not result.succeeded:
+            scanner = getattr(app.state, "scanner", None)
+            if scanner:
+                scanner.reset_live_state(channel_external_id)
 
         if result.succeeded and result.output_file:
             upload_db: Session = SessionLocal()

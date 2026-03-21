@@ -161,6 +161,10 @@ class ChzzkScanner:
         if thumbnail_url:
             self._thumbnail_cache[channel_id] = thumbnail_url
 
+    def reset_live_state(self, channel_id: str) -> None:
+        """녹화 실패 후 호출 — 다음 스캔 주기에 on_live가 재트리거되도록 상태를 초기화한다."""
+        self._last_live_state.pop(channel_id, None)
+
     @staticmethod
     def _extract_thumbnail_url(payload: dict[str, Any] | None) -> str | None:
         if not isinstance(payload, dict):
