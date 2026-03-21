@@ -175,6 +175,12 @@ const ActivityTabContent = (): JSX.Element => {
   const bpmValues  = useMemo(() => hrPoints.map((p) => p.bpm), [hrPoints]);
   const timestamps = useMemo(() => hrPoints.map((p) => p.ts), [hrPoints]);
 
+  const bpmStats = useMemo(() => {
+    if (bpmValues.length === 0) return null;
+    const sum = bpmValues.reduce((a, b) => a + b, 0);
+    return { avg: Math.round(sum / bpmValues.length), min: Math.min(...bpmValues), max: Math.max(...bpmValues) };
+  }, [bpmValues]);
+
   return (
     <section className="space-y-4">
       {error && (
@@ -208,11 +214,11 @@ const ActivityTabContent = (): JSX.Element => {
             심박수 기록 없음 (Galaxy Watch 연동 후 자동 수집)
           </p>
         )}
-        {bpmValues.length > 0 && (
+        {bpmStats && (
           <div className="mt-2 grid grid-cols-3 gap-2 text-center text-[10px] text-app-muted">
-            <div><p>평균</p><p className="font-semibold text-app-text">{Math.round(bpmValues.reduce((a, b) => a + b, 0) / bpmValues.length)}bpm</p></div>
-            <div><p>최저</p><p className="font-semibold text-app-text">{Math.min(...bpmValues)}bpm</p></div>
-            <div><p>최고</p><p className="font-semibold text-app-text">{Math.max(...bpmValues)}bpm</p></div>
+            <div><p>평균</p><p className="font-semibold text-app-text">{bpmStats.avg}bpm</p></div>
+            <div><p>최저</p><p className="font-semibold text-app-text">{bpmStats.min}bpm</p></div>
+            <div><p>최고</p><p className="font-semibold text-app-text">{bpmStats.max}bpm</p></div>
           </div>
         )}
       </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Recording, UploadLog } from './types';
 
 interface Props {
@@ -23,7 +23,7 @@ const isActiveUpload = (status: string): boolean =>
 
 export const ChzzkUploadsTab = ({ uploads, recordings, onBulkDelete }: Props): JSX.Element => {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const recordingMap = new Map(recordings.map((r) => [r.id, r]));
+  const recordingMap = useMemo(() => new Map(recordings.map((r) => [r.id, r])), [recordings]);
 
   const deletableUploads = uploads.filter((u) => !isActiveUpload(u.status));
   const allSelected = deletableUploads.length > 0 && selectedIds.size === deletableUploads.length;

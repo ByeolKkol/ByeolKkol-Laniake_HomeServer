@@ -330,6 +330,21 @@ const TapoSection = (): JSX.Element => {
   const timestamps  = useMemo(() => history?.points.map((p) => p.ts) ?? [], [history]);
   const selectedDevice = devices.find((d) => d.id === selectedId) ?? null;
 
+  const deviceSummary = useMemo(() => ({
+    totalW:  devices.reduce((s, d) => s + (d.power_w ?? 0), 0),
+    totalWh: devices.reduce((s, d) => s + (d.today_energy_wh ?? 0), 0),
+  }), [devices]);
+
+  const powerStats = useMemo(() => {
+    if (powerPoints.length === 0 || !history) return null;
+    const last = history.points[history.points.length - 1];
+    return {
+      avg:          (powerPoints.reduce((a, b) => a + b, 0) / powerPoints.length).toFixed(1),
+      max:          Math.max(...powerPoints).toFixed(1),
+      todayEnergyWh: last.today_energy_wh,
+    };
+  }, [powerPoints, history]);
+
   return (
     <section className="space-y-4">
       {error && (
@@ -351,22 +366,18 @@ const TapoSection = (): JSX.Element => {
       </div>
 
       {/* Summary bar */}
-      {devices.length > 0 && (() => {
-        const totalW   = devices.reduce((s, d) => s + (d.power_w ?? 0), 0);
-        const totalWh  = devices.reduce((s, d) => s + (d.today_energy_wh ?? 0), 0);
-        return (
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-app-border bg-app-soft px-4 py-3 text-center">
-              <p className="text-[11px] text-app-muted">현재 총 사용 전력</p>
-              <p className="text-2xl font-bold text-amber-400">{totalW.toFixed(1)}<span className="ml-1 text-sm font-normal text-app-muted">W</span></p>
-            </div>
-            <div className="rounded-xl border border-app-border bg-app-soft px-4 py-3 text-center">
-              <p className="text-[11px] text-app-muted">오늘 총 사용량</p>
-              <p className="text-2xl font-bold text-sky-400">{totalWh.toFixed(0)}<span className="ml-1 text-sm font-normal text-app-muted">Wh</span></p>
-            </div>
+      {devices.length > 0 && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl border border-app-border bg-app-soft px-4 py-3 text-center">
+            <p className="text-[11px] text-app-muted">현재 총 사용 전력</p>
+            <p className="text-2xl font-bold text-amber-400">{deviceSummary.totalW.toFixed(1)}<span className="ml-1 text-sm font-normal text-app-muted">W</span></p>
           </div>
-        );
-      })()}
+          <div className="rounded-xl border border-app-border bg-app-soft px-4 py-3 text-center">
+            <p className="text-[11px] text-app-muted">오늘 총 사용량</p>
+            <p className="text-2xl font-bold text-sky-400">{deviceSummary.totalWh.toFixed(0)}<span className="ml-1 text-sm font-normal text-app-muted">Wh</span></p>
+          </div>
+        </div>
+      )}
 
       {/* Plug cards grid */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -419,17 +430,13 @@ const TapoSection = (): JSX.Element => {
             yMin={0} yMax={Math.max(100, ...(powerPoints.length ? powerPoints : [100]))}
             unit="W" timestamps={timestamps} />
 
-          {history && history.points.length > 0 && (() => {
-            const watts = history.points.map((p) => p.power_w);
-            const last  = history.points[history.points.length - 1];
-            return (
-              <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[10px] text-app-muted">
-                <div><p>평균 전력</p><p className="font-semibold text-app-text">{(watts.reduce((a,b)=>a+b,0)/watts.length).toFixed(1)}W</p></div>
-                <div><p>최대 전력</p><p className="font-semibold text-app-text">{Math.max(...watts).toFixed(1)}W</p></div>
-                <div><p>오늘 누적</p><p className="font-semibold text-app-text">{fmtWh(last.today_energy_wh)}</p></div>
-              </div>
-            );
-          })()}
+          {powerStats && (
+            <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[10px] text-app-muted">
+              <div><p>평균 전력</p><p className="font-semibold text-app-text">{powerStats.avg}W</p></div>
+              <div><p>최대 전력</p><p className="font-semibold text-app-text">{powerStats.max}W</p></div>
+              <div><p>오늘 누적</p><p className="font-semibold text-app-text">{fmtWh(powerStats.todayEnergyWh)}</p></div>
+            </div>
+          )}
         </article>
       )}
     </section>

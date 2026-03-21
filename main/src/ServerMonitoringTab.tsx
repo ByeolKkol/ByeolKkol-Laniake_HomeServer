@@ -106,6 +106,12 @@ const ServerMonitoringTab = (): JSX.Element => {
   const recvPoints = useMemo(() => history.flatMap((p) => p.net_recv_bps != null ? [p.net_recv_bps] : []), [history]);
   const sentPoints = useMemo(() => history.flatMap((p) => p.net_sent_bps != null ? [p.net_sent_bps] : []), [history]);
 
+  const cpuStats = useMemo(() => {
+    if (cpuPoints.length < 2) return null;
+    const sum = cpuPoints.reduce((a, b) => a + b, 0);
+    return { avg: (sum / cpuPoints.length).toFixed(1), max: Math.max(...cpuPoints).toFixed(1) };
+  }, [cpuPoints]);
+
   const startLabel   = history.length > 0 ? fmtTs(history[0].ts) : '';
   const endLabel     = history.length > 0 ? fmtTs(history[history.length - 1].ts) : '';
   const historyTs    = useMemo(() => history.map((p) => p.ts), [history]);
@@ -168,10 +174,9 @@ const ServerMonitoringTab = (): JSX.Element => {
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-medium">CPU 사용률</p>
-                {cpuPoints.length > 1 && (
+                {cpuStats && (
                   <p className="text-[10px] text-app-muted">
-                    평균 {(cpuPoints.reduce((a, b) => a + b, 0) / cpuPoints.length).toFixed(1)}%
-                    · 최대 {Math.max(...cpuPoints).toFixed(1)}%
+                    평균 {cpuStats.avg}% · 최대 {cpuStats.max}%
                   </p>
                 )}
               </div>

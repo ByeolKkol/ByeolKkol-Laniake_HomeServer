@@ -174,6 +174,17 @@ const IotTab = (): JSX.Element => {
   const humPoints   = useMemo(() => history?.points.map((p) => p.humidity) ?? [], [history]);
   const timestamps  = useMemo(() => history?.points.map((p) => p.ts) ?? [], [history]);
 
+  const historyStats = useMemo(() => {
+    if (tempPoints.length === 0) return null;
+    const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
+    return {
+      tempAvg: (sum(tempPoints) / tempPoints.length).toFixed(1),
+      tempMax: Math.max(...tempPoints).toFixed(1),
+      humAvg:  (sum(humPoints) / humPoints.length).toFixed(1),
+      humMax:  Math.max(...humPoints).toFixed(1),
+    };
+  }, [tempPoints, humPoints]);
+
   const selectedDevice = devices.find((d) => d.id === selectedId) ?? null;
 
   return (
@@ -259,18 +270,14 @@ const IotTab = (): JSX.Element => {
             yMin={0} yMax={100} unit="%" timestamps={timestamps} />
 
           {/* Stats */}
-          {history && history.points.length > 0 && (() => {
-            const temps = history.points.map((p) => p.temperature);
-            const hums  = history.points.map((p) => p.humidity);
-            return (
-              <div className="mt-3 grid grid-cols-4 gap-2 text-center text-[10px] text-app-muted">
-                <div><p>온도 평균</p><p className="font-semibold text-app-text">{(temps.reduce((a,b)=>a+b,0)/temps.length).toFixed(1)}°C</p></div>
-                <div><p>온도 최대</p><p className="font-semibold text-app-text">{Math.max(...temps).toFixed(1)}°C</p></div>
-                <div><p>습도 평균</p><p className="font-semibold text-app-text">{(hums.reduce((a,b)=>a+b,0)/hums.length).toFixed(1)}%</p></div>
-                <div><p>습도 최대</p><p className="font-semibold text-app-text">{Math.max(...hums).toFixed(1)}%</p></div>
-              </div>
-            );
-          })()}
+          {historyStats && (
+            <div className="mt-3 grid grid-cols-4 gap-2 text-center text-[10px] text-app-muted">
+              <div><p>온도 평균</p><p className="font-semibold text-app-text">{historyStats.tempAvg}°C</p></div>
+              <div><p>온도 최대</p><p className="font-semibold text-app-text">{historyStats.tempMax}°C</p></div>
+              <div><p>습도 평균</p><p className="font-semibold text-app-text">{historyStats.humAvg}%</p></div>
+              <div><p>습도 최대</p><p className="font-semibold text-app-text">{historyStats.humMax}%</p></div>
+            </div>
+          )}
         </article>
       )}
     </section>
