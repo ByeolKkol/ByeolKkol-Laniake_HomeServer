@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState } from 'react';
 import { useChzzkData } from './useChzzkData';
-import { getApiBase, getIotApiBase, getServerApiBase, getTapoApiBase, getWolApiBase } from './settingsStore';
+import { getApiBase, getHealthApiBase, getIotApiBase, getServerApiBase, getTapoApiBase, getWolApiBase } from './settingsStore';
 
 // ── Lazy-loaded tab components ────────────────────────────────────────────────
 const ServerControlTab  = lazy(() => import('./ServerControlTab'));
@@ -15,12 +15,14 @@ const ChzzkUploadsTab   = lazy(() => import('./ChzzkUploadsTab'));
 const ChzzkAccountTab   = lazy(() => import('./ChzzkAccountTab'));
 const IotTab            = lazy(() => import('./IotTab'));
 const TapoSection       = lazy(() => import('./TapoSection'));
+const HealthTab         = lazy(() => import('./HealthTab'));
 
 // ── Types & constants ─────────────────────────────────────────────────────────
-type AppKey = 'chzzk' | 'server' | 'wol' | 'discussion' | 'iot' | 'settings';
+type AppKey = 'chzzk' | 'server' | 'wol' | 'discussion' | 'iot' | 'health' | 'settings';
 type ChzzkTabKey = 'overview' | 'live' | 'uploads' | 'channels';
 type ServerTabKey = 'hardware' | 'monitoring';
 type IotTabKey = 'sensors' | 'tapo';
+type HealthTabKey = 'weight' | 'activity';
 type SettingsTabKey = 'app' | 'chzzk-account';
 type DiscussionTabKey = 'chat' | 'prompt-common' | 'prompt-claude' | 'prompt-gemini' | 'prompt-codex';
 
@@ -30,12 +32,18 @@ const APP_TABS: Array<{ key: AppKey; label: string }> = [
   { key: 'wol', label: 'PC 전원' },
   { key: 'discussion', label: 'AI 토론' },
   { key: 'iot', label: 'IoT' },
+  { key: 'health', label: '헬스' },
   { key: 'settings', label: '설정' },
 ];
 
 const IOT_TABS: Array<{ key: IotTabKey; label: string; hint: string }> = [
   { key: 'sensors', label: 'IoT 센서',      hint: '온도 · 습도 · 배터리' },
   { key: 'tapo',    label: 'Tapo 스마트 플러그', hint: '전력 · 에너지 · 켜기/끄기' },
+];
+
+const HEALTH_TABS: Array<{ key: HealthTabKey; label: string; hint: string }> = [
+  { key: 'weight',   label: '체중',  hint: '체중 추이 · 체성분' },
+  { key: 'activity', label: '활동',  hint: '심박수 · 운동 기록' },
 ];
 
 const CHZZK_TABS: Array<{ key: ChzzkTabKey; label: string; hint: string }> = [
@@ -94,6 +102,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ChzzkTabKey>('overview');
   const [serverTab, setServerTab] = useState<ServerTabKey>('hardware');
   const [iotTab, setIotTab] = useState<IotTabKey>('sensors');
+  const [healthTab, setHealthTab] = useState<HealthTabKey>('weight');
   const [discussionTab, setDiscussionTab] = useState<DiscussionTabKey>('chat');
   const [settingsTab, setSettingsTab] = useState<SettingsTabKey>('app');
 
@@ -115,6 +124,7 @@ export default function App() {
     appKey === 'wol' ? 'PC 전원 제어' :
     appKey === 'discussion' ? 'AI 토론' :
     appKey === 'iot' ? (IOT_TABS.find((t) => t.key === iotTab)?.label ?? '') :
+    appKey === 'health' ? (HEALTH_TABS.find((t) => t.key === healthTab)?.label ?? '') :
     SETTINGS_TABS.find((t) => t.key === settingsTab)?.label ?? '설정';
 
   const mainSubtitle =
@@ -122,7 +132,8 @@ export default function App() {
     appKey === 'server' ? `Server API: ${getServerApiBase()}` :
     appKey === 'wol' ? `WOL API: ${getWolApiBase()}` :
     appKey === 'iot' && iotTab === 'sensors' ? `IoT API: ${getIotApiBase()}` :
-    appKey === 'iot' && iotTab === 'tapo' ? `Tapo API: ${getTapoApiBase()}` : '';
+    appKey === 'iot' && iotTab === 'tapo' ? `Tapo API: ${getTapoApiBase()}` :
+    appKey === 'health' ? `Health API: ${getHealthApiBase()}` : '';
 
   return (
     <div className="flex h-screen overflow-hidden flex-col bg-app text-app-text">
@@ -169,6 +180,9 @@ export default function App() {
             ))}
             {appKey === 'iot' && IOT_TABS.map((tab) => (
               <NavItem key={tab.key} label={tab.label} hint={tab.hint} active={iotTab === tab.key} onClick={() => setIotTab(tab.key)} />
+            ))}
+            {appKey === 'health' && HEALTH_TABS.map((tab) => (
+              <NavItem key={tab.key} label={tab.label} hint={tab.hint} active={healthTab === tab.key} onClick={() => setHealthTab(tab.key)} />
             ))}
             {appKey === 'settings' && SETTINGS_TABS.map((tab) => (
               <NavItem key={tab.key} label={tab.label} hint={tab.hint} active={settingsTab === tab.key} onClick={() => setSettingsTab(tab.key)} />
@@ -252,6 +266,7 @@ export default function App() {
             )}
             {appKey === 'iot' && iotTab === 'sensors' && <IotTab />}
             {appKey === 'iot' && iotTab === 'tapo' && <TapoSection />}
+            {appKey === 'health' && <HealthTab view={healthTab} />}
           </Suspense>
         </main>
       </div>

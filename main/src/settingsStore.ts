@@ -41,3 +41,7 @@ export function getIotApiBase(): string {
 export function getTapoApiBase(): string {
   return `http://${getServerIp()}:8094`;
 }
+
+export function getHealthApiBase(): string {
+  return `http://${getServerIp()}:8095`;
+}

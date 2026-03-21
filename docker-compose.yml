@@ -98,6 +98,26 @@ services:
     networks:
       - laniake_homeserver_default
 
+  health-backend:
+    build:
+      context: ./health-backend
+      dockerfile: Dockerfile
+    container_name: health-backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://byeolkkol@db:5432/chzzk
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://192.168.1.8:8080}
+      - XIAOMI_USERNAME=${XIAOMI_USERNAME:-}
+      - XIAOMI_PASSWORD=${XIAOMI_PASSWORD:-}
+      - XIAOMI_REGION=${XIAOMI_REGION:-cn}
+      - XIAOMI_DEVICE_ID=${XIAOMI_DEVICE_ID:-}
+    ports:
+      - "8095:8095"
+    depends_on:
+      - db
+    networks:
+      - laniake_homeserver_default
+
   ai-discussion:
     build:
       context: ./ai-discussion
