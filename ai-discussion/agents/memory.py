@@ -99,7 +99,7 @@ class MemoryManager:
                 output_fields=["content"],
                 search_params={"metric_type": "COSINE"},
             )
-            return [hit["entity"]["content"] for hit in results[0]]
+            return [hit["entity"]["content"] for hit in results[0]] if results else []
         except Exception as e:
             print(f"[memory:{self.agent_name}] 검색 실패: {e}")
             return []
