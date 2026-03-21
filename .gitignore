@@ -18,6 +18,7 @@ tsconfig.tsbuildinfo
 .env.*
 *.secret
 cz-recording/credentials.json
+cz-recording/google_drive_session.json
 
 # Milvus 로컬 DB
 data/
