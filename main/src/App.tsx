@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState } from 'react';
 import { useChzzkData } from './useChzzkData';
-import { getApiBase, getHealthApiBase, getIotApiBase, getServerApiBase, getTapoApiBase, getWolApiBase } from './settingsStore';
+import { getApiBase, getDozzleUrl, getHealthApiBase, getIotApiBase, getServerApiBase, getTapoApiBase, getWolApiBase } from './settingsStore';
 
 // ── Lazy-loaded tab components ────────────────────────────────────────────────
 const ServerControlTab  = lazy(() => import('./ServerControlTab'));
@@ -172,6 +172,17 @@ export default function App() {
             {appKey === 'server' && SERVER_TABS.map((tab) => (
               <NavItem key={tab.key} label={tab.label} hint={tab.hint} active={serverTab === tab.key} onClick={() => setServerTab(tab.key)} />
             ))}
+            {appKey === 'server' && (
+              <a
+                href={getDozzleUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full flex-col rounded-xl border border-transparent px-3 py-2 text-left text-app-muted transition hover:border-app-border hover:bg-app-soft"
+              >
+                <p className="text-sm font-medium">Dozzle 로그</p>
+                <p className="text-xs">컨테이너 로그 뷰어 ↗</p>
+              </a>
+            )}
             {appKey === 'wol' && (
               <NavItem label="PC 전원 제어" hint="WOL · 끄기 · 재시작" active={true} onClick={() => undefined} />
             )}

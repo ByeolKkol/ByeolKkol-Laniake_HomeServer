@@ -45,3 +45,7 @@ export function getTapoApiBase(): string {
 export function getHealthApiBase(): string {
   return `http://${getServerIp()}:8095`;
 }
+
+export function getDozzleUrl(): string {
+  return `http://${getServerIp()}:8096`;
+}
