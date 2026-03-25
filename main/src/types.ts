@@ -4,6 +4,15 @@ export type HealthResponse = {
   active_recordings?: number;
 };
 
+export interface HealthState {
+  healthy: boolean;
+  scanner_running?: boolean;
+  active_recordings?: number;
+  disk_free_bytes?: number | null;
+  disk_total_bytes?: number | null;
+  disk_used_percent?: number | null;
+}
+
 export type Channel = {
   id: number;
   channel_id: string;

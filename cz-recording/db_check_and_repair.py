@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import text
 
-from database import engine, ensure_channel_schema, ensure_upload_schema
+from database import engine
 
 
 def _scalar(conn, query: str, **params):
@@ -158,9 +158,6 @@ def main():
     parser.add_argument("--hours", type=int, default=6, help="stale 판정 시간(시간)")
     parser.add_argument("--fix", action="store_true", help="정리 쿼리 실제 적용")
     args = parser.parse_args()
-
-    ensure_channel_schema()
-    ensure_upload_schema()
 
     before = collect_metrics(args.hours)
     result = {

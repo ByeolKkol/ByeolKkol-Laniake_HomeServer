@@ -111,7 +111,7 @@ export default function App() {
     globalCookieStatus, googleDriveStatus, channelQualityDrafts, setChannelQualityDrafts,
     activeChannelCount, retryingRecordingId, deletingRecordingId, stoppingRecordingId,
     savingChannel, savingCookies, savingDriveCredentials,
-    refreshAll,
+    refreshAll, refreshDriveStatus,
     handleAddChannel, handleDeleteChannel, handleToggleChannel, handleSaveChannelQuality,
     handleManualRecord, handleSaveCookies, handleUploadDriveCredentials,
     handleRetryUpload, handleStopRecording, handleDeleteRecording,
@@ -240,6 +240,7 @@ export default function App() {
                 savingCookies={savingCookies} savingDriveCredentials={savingDriveCredentials}
                 onSaveCookies={(a, s) => void handleSaveCookies(a, s)}
                 onUploadDriveCredentials={(f) => void handleUploadDriveCredentials(f)}
+                onDriveStatusRefresh={refreshDriveStatus}
               />
             )}
 

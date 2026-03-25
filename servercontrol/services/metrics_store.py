@@ -13,6 +13,11 @@ DATABASE_URL: str = os.environ.get(
 RETENTION_SECONDS = 86400   # 24시간 보관
 COLLECT_INTERVAL_S = 10     # 10초마다 수집
 
+# 허용된 컬럼 이름 화이트리스트 (SQL injection 방지)
+_ALLOWED_COLUMNS: frozenset[str] = frozenset({
+    "cpu_pct", "mem_pct", "cpu_temp", "net_recv_bps", "net_sent_bps",
+})
+
 
 def _conn() -> psycopg2.extensions.connection:
     return psycopg2.connect(DATABASE_URL)
@@ -36,6 +41,8 @@ def init_db() -> None:
         )
         # 기존 테이블에 컬럼 추가 (마이그레이션)
         for col in ("net_recv_bps", "net_sent_bps"):
+            if col not in _ALLOWED_COLUMNS:
+                raise ValueError(f"Disallowed column name: {col}")
             cur.execute(
                 f"ALTER TABLE server_metric_samples ADD COLUMN IF NOT EXISTS {col} REAL"
             )

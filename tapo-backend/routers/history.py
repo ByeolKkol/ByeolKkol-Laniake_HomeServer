@@ -43,6 +43,7 @@ def get_history(
                 FROM tapo_readings
                 WHERE device_id = %(did)s
                   AND ts BETWEEN %(t0)s AND %(t1)s
+                  AND power_w < 5000
                 GROUP BY 1
                 ORDER BY 1
             """, {"b": bucket, "did": device_id, "t0": t_start, "t1": t_end})

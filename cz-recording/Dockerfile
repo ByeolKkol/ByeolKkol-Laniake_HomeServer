@@ -10,7 +10,6 @@ WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir uvicorn psycopg2-binary gspread oauth2client pyyaml streamlink
 
 COPY . .
 

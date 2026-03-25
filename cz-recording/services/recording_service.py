@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+from dataclasses import dataclass
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
@@ -40,6 +41,46 @@ def resolve_channel_by_external_id(db: Session, channel_external_id: str) -> Cha
     return channel
 
 
+def _fill_file_info_from_path(recording: Recording, file_path: str) -> None:
+    """녹화 레코드에 파일 경로와 크기를 채운다."""
+    recording.file_path = file_path
+    try:
+        recording.file_size_bytes = os.path.getsize(file_path)
+    except OSError:
+        recording.file_size_bytes = None
+
+
+def _enqueue_drive_upload(app: FastAPI, recording_id: int, output_file: str) -> None:
+    """Google Drive 업로드를 큐에 등록하고 비동기 태스크를 시작한다."""
+    upload_db: Session = SessionLocal()
+    try:
+        upload_log = UploadLog(
+            recording_id=recording_id,
+            destination="google_drive",
+            status="queued",
+            progress_percent=0,
+            message="Queued for Google Drive upload",
+        )
+        upload_db.add(upload_log)
+        upload_db.commit()
+        upload_db.refresh(upload_log)
+    finally:
+        upload_db.close()
+
+    from uploader import upload_to_drive
+
+    upload_task = asyncio.create_task(
+        upload_to_drive(
+            db_factory=SessionLocal,
+            upload_log_id=upload_log.id,
+            file_path=output_file,
+            parent_folder_id=GOOGLE_DRIVE_PARENT_ID,
+        )
+    )
+    app.state.upload_tasks[upload_log.id] = upload_task
+    upload_task.add_done_callback(lambda _: app.state.upload_tasks.pop(upload_log.id, None))
+
+
 async def finalize_recording_task(
     app: FastAPI,
     recording_id: int,
@@ -57,11 +98,7 @@ async def finalize_recording_task(
                 recording.ended_at = utc_now()
                 path_sink = app.state.recording_runtime.get(recording_id, {}).get("path_sink", [])
                 if path_sink:
-                    recording.file_path = path_sink[0]
-                    try:
-                        recording.file_size_bytes = os.path.getsize(path_sink[0])
-                    except OSError:
-                        recording.file_size_bytes = None
+                    _fill_file_info_from_path(recording, path_sink[0])
                 db.commit()
             return
         except Exception as exc:
@@ -73,11 +110,7 @@ async def finalize_recording_task(
                 recording.title = recording.title or str(exc)
                 path_sink = app.state.recording_runtime.get(recording_id, {}).get("path_sink", [])
                 if path_sink:
-                    recording.file_path = path_sink[0]
-                    try:
-                        recording.file_size_bytes = os.path.getsize(path_sink[0])
-                    except OSError:
-                        recording.file_size_bytes = None
+                    _fill_file_info_from_path(recording, path_sink[0])
                 db.commit()
             scanner = getattr(app.state, "scanner", None)
             if scanner:
@@ -93,10 +126,7 @@ async def finalize_recording_task(
         recording.started_at = result.started_at
         recording.ended_at = result.ended_at
         recording.duration_seconds = int((result.ended_at - result.started_at).total_seconds())
-        try:
-            recording.file_size_bytes = os.path.getsize(result.output_file)
-        except OSError:
-            recording.file_size_bytes = None
+        _fill_file_info_from_path(recording, result.output_file)
         db.commit()
 
         if not result.succeeded:
@@ -105,37 +135,73 @@ async def finalize_recording_task(
                 scanner.reset_live_state(channel_external_id)
 
         if result.succeeded and result.output_file:
-            upload_db: Session = SessionLocal()
-            try:
-                upload_log = UploadLog(
-                    recording_id=recording.id,
-                    destination="google_drive",
-                    status="queued",
-                    progress_percent=0,
-                    message="Queued for Google Drive upload",
-                )
-                upload_db.add(upload_log)
-                upload_db.commit()
-                upload_db.refresh(upload_log)
-            finally:
-                upload_db.close()
-
-            from uploader import upload_to_drive
-            upload_task = asyncio.create_task(
-                upload_to_drive(
-                    db_factory=SessionLocal,
-                    upload_log_id=upload_log.id,
-                    file_path=result.output_file,
-                    parent_folder_id=GOOGLE_DRIVE_PARENT_ID,
-                )
-            )
-            app.state.upload_tasks[upload_log.id] = upload_task
-            upload_task.add_done_callback(lambda _: app.state.upload_tasks.pop(upload_log.id, None))
+            _enqueue_drive_upload(app, recording.id, result.output_file)
     finally:
         db.close()
         app.state.recording_tasks.pop(recording_id, None)
         app.state.recording_runtime.pop(recording_id, None)
         app.state.active_channel_recordings.pop(channel_external_id, None)
+
+
+@dataclass
+class _RecordingContext:
+    recording_id: int
+    display_name: str
+    title: str
+    stream_url: str
+    quality: str
+    cookies: dict[str, str] | None
+    thumbnail_url: str | None
+
+
+def _prepare_recording(
+    channel_external_id: str,
+    payload: dict[str, Any] | None,
+    stream_title: str | None,
+    display_name: str | None,
+) -> _RecordingContext:
+    """채널 조회, Recording 행 생성, 녹화에 필요한 메타데이터를 반환한다."""
+    from services.chzzk_client import extract_display_name, extract_stream_title, extract_thumbnail_url
+    from services.cookie_service import get_global_cookie_map
+
+    db: Session = SessionLocal()
+    try:
+        channel = resolve_channel_by_external_id(db, channel_external_id)
+        if not channel.is_active:
+            raise HTTPException(status_code=400, detail="Channel is inactive")
+
+        stream_id = None
+        title = stream_title or channel.name or channel.channel_id
+        if isinstance(payload, dict):
+            stream_id = payload.get("liveId") or payload.get("streamId")
+            title = extract_stream_title(payload) or title
+        resolved_display_name = (
+            display_name or channel.name or extract_display_name(payload) or channel.channel_id
+        )
+
+        recording = Recording(
+            channel_id=channel.id,
+            stream_id=stream_id,
+            title=title,
+            file_path="",
+            status="recording",
+            started_at=utc_now(),
+        )
+        db.add(recording)
+        db.commit()
+        db.refresh(recording)
+
+        return _RecordingContext(
+            recording_id=recording.id,
+            display_name=resolved_display_name,
+            title=title,
+            stream_url=f"https://chzzk.naver.com/live/{channel.channel_id}",
+            quality=normalize_quality(channel.quality),
+            cookies=get_global_cookie_map(db) or None,
+            thumbnail_url=extract_thumbnail_url(payload),
+        )
+    finally:
+        db.close()
 
 
 async def start_recording_for_channel(
@@ -154,71 +220,37 @@ async def start_recording_for_channel(
             return {"message": "Recording already in progress", "recording_id": active_id}
 
         from recorder import start_streamlink_recording
-        from services.chzzk_client import extract_display_name, extract_stream_title, extract_thumbnail_url
-        from services.cookie_service import get_global_cookie_map
 
-        db: Session = SessionLocal()
-        try:
-            channel = resolve_channel_by_external_id(db, channel_external_id)
-            if not channel.is_active:
-                raise HTTPException(status_code=400, detail="Channel is inactive")
-
-            stream_id = None
-            title = stream_title or channel.name or channel.channel_id
-            if isinstance(payload, dict):
-                stream_id = payload.get("liveId") or payload.get("streamId")
-                title = extract_stream_title(payload) or title
-            resolved_display_name = (
-                display_name or channel.name or extract_display_name(payload) or channel.channel_id
-            )
-
-            recording = Recording(
-                channel_id=channel.id,
-                stream_id=stream_id,
-                title=title,
-                file_path="",
-                status="recording",
-                started_at=utc_now(),
-            )
-            db.add(recording)
-            db.commit()
-            db.refresh(recording)
-
-            cookies = get_global_cookie_map(db)
-            stream_url = f"https://chzzk.naver.com/live/{channel.channel_id}"
-            quality = normalize_quality(channel.quality)
-            thumbnail_url = extract_thumbnail_url(payload)
-        finally:
-            db.close()
+        ctx = _prepare_recording(channel_external_id, payload, stream_title, display_name)
 
         path_sink: list = []
         task = await start_streamlink_recording(
             channel_id=channel_external_id,
-            display_name=resolved_display_name,
-            stream_title=title,
-            stream_url=stream_url,
+            display_name=ctx.display_name,
+            stream_title=ctx.title,
+            stream_url=ctx.stream_url,
             output_dir=recordings_output_dir,
-            quality=quality,
-            cookies=cookies or None,
+            quality=ctx.quality,
+            cookies=ctx.cookies,
             _path_sink=path_sink,
         )
-        app.state.recording_tasks[recording.id] = task
-        app.state.active_channel_recordings[channel_external_id] = recording.id
-        app.state.recording_runtime[recording.id] = {"thumbnail_url": thumbnail_url, "path_sink": path_sink}
+        app.state.recording_tasks[ctx.recording_id] = task
+        app.state.active_channel_recordings[channel_external_id] = ctx.recording_id
+        app.state.recording_runtime[ctx.recording_id] = {"thumbnail_url": ctx.thumbnail_url, "path_sink": path_sink}
 
         scanner = getattr(app.state, "scanner", None)
         if scanner:
-            scanner.cache_thumbnail_url(channel_external_id, thumbnail_url)
+            scanner.cache_thumbnail_url(channel_external_id, ctx.thumbnail_url)
 
-        asyncio.create_task(finalize_recording_task(app, recording.id, channel_external_id, task))
+        asyncio.create_task(finalize_recording_task(app, ctx.recording_id, channel_external_id, task))
 
         logger.info(
             "Recording started channel=%s recording_id=%s source=%s",
             channel_external_id,
-            recording.id,
+            ctx.recording_id,
             source,
         )
-        return {"message": "Recording started", "recording_id": recording.id}
+        return {"message": "Recording started", "recording_id": ctx.recording_id}
 
 
 async def on_channel_live(app: FastAPI, channel_id: str, payload: dict[str, Any], recordings_output_dir: str) -> None:

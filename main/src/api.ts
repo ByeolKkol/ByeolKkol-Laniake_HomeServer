@@ -149,3 +149,27 @@ export async function uploadGoogleDriveCredentials(file: File): Promise<{ messag
   });
   return parseJson(response);
 }
+
+export async function uploadGoogleDriveSession(file: File): Promise<{ message: string; item: GoogleDriveSettingsResponse['item'] }> {
+  const formData = new FormData();
+  formData.append('session_file', file);
+  const response = await fetch(`${getApiBase()}/settings/google-drive/session`, {
+    method: 'POST',
+    body: formData,
+  });
+  return parseJson(response);
+}
+
+export async function fetchGoogleDriveAuthUrl(): Promise<{ auth_url: string }> {
+  const response = await fetch(`${getApiBase()}/settings/google-drive/auth-url`);
+  return parseJson(response);
+}
+
+export async function submitGoogleDriveAuthCode(code: string): Promise<{ message: string; item: GoogleDriveSettingsResponse['item'] }> {
+  const response = await fetch(`${getApiBase()}/settings/google-drive/auth-code`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  });
+  return parseJson(response);
+}

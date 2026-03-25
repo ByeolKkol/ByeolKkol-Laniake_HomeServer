@@ -116,7 +116,7 @@ const RateEditor = ({ onSaved }: { onSaved: () => void }): JSX.Element => {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    fetchRates().then(setRates).catch(() => undefined);
+    fetchRates().then(setRates).catch((e) => console.warn('fetchRates failed:', e));
   }, []);
 
   const update = (i: number, field: keyof ElectricityRate, val: string): void => {
@@ -197,7 +197,7 @@ const MonthlySection = (): JSX.Element => {
   const [rateKey, setRateKey] = useState(0);
 
   const load = useCallback((): void => {
-    fetchMonthly(6).then(setData).catch(() => undefined);
+    fetchMonthly(6).then(setData).catch((e) => console.warn('fetchMonthly failed:', e));
   }, []);
 
   useEffect(() => { load(); }, [load, rateKey]);
@@ -276,14 +276,14 @@ const TapoSection = (): JSX.Element => {
   useEffect(() => {
     if (selectedId == null) return;
     const id = window.setInterval(() => {
-      fetchTapoHistory(selectedId, { minutes: rangeMinutes }).then(setHistory).catch(() => undefined);
+      fetchTapoHistory(selectedId, { minutes: rangeMinutes }).then(setHistory).catch((e) => console.warn('fetchTapoHistory failed:', e));
     }, 30000);
     return () => window.clearInterval(id);
   }, [selectedId, rangeMinutes]);
 
   useEffect(() => {
     if (selectedId == null) return;
-    fetchTapoHistory(selectedId, { minutes: rangeMinutes }).then(setHistory).catch(() => undefined);
+    fetchTapoHistory(selectedId, { minutes: rangeMinutes }).then(setHistory).catch((e) => console.warn('fetchTapoHistory failed:', e));
   }, [selectedId, rangeMinutes]);
 
   const handleSync = useCallback(async (): Promise<void> => {
@@ -326,7 +326,10 @@ const TapoSection = (): JSX.Element => {
     }
   }, [loadDevices]);
 
-  const powerPoints = useMemo(() => history?.points.map((p) => p.power_w) ?? [], [history]);
+  const powerPoints = useMemo(
+    () => (history?.points.map((p) => p.power_w) ?? []).filter((w) => Number.isFinite(w) && w >= 0 && w < 5000),
+    [history],
+  );
   const timestamps  = useMemo(() => history?.points.map((p) => p.ts) ?? [], [history]);
   const selectedDevice = devices.find((d) => d.id === selectedId) ?? null;
 

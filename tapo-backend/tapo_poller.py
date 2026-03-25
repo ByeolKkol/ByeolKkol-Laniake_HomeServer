@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import time
+from typing import Any, TypedDict
 
 from credentials import get_tapo_credentials
 from db import get_conn
@@ -24,7 +25,7 @@ async def get_cloud() -> TapoCloud:
     return _cloud
 
 
-def _upsert_devices(plugs: list[dict], cloud: TapoCloud) -> None:
+def _upsert_devices(plugs: list[dict[str, Any]], cloud: TapoCloud) -> None:
     now = time.time()
     with get_conn() as conn:
         with conn.cursor() as cur:
@@ -45,7 +46,14 @@ def _upsert_devices(plugs: list[dict], cloud: TapoCloud) -> None:
         conn.commit()
 
 
-async def _poll_local(ip: str) -> dict:
+class PollResult(TypedDict):
+    is_on: bool
+    power_w: float | None
+    today_energy_wh: int
+    month_energy_wh: int
+
+
+async def _poll_local(ip: str) -> PollResult:
     """Poll a single device via local KLAP protocol."""
     from tapo import ApiClient
     username, password = get_tapo_credentials()
@@ -53,9 +61,10 @@ async def _poll_local(ip: str) -> dict:
     plug = await client.p110(ip)
     info = await plug.get_device_info()
     energy = await plug.get_energy_usage()
+    raw_w = energy.current_power / 1000.0
     return {
         "is_on": bool(info.device_on),
-        "power_w": energy.current_power / 1000.0,
+        "power_w": raw_w if 0 <= raw_w < 5000 else None,
         "today_energy_wh": energy.today_energy,
         "month_energy_wh": energy.month_energy,
     }
@@ -100,7 +109,7 @@ async def poll_once() -> None:
                         (data["is_on"], data["power_w"], data["today_energy_wh"],
                          data["month_energy_wh"], now, device_id),
                     )
-                    if data["is_on"] and data["power_w"] is not None:
+                    if data["is_on"] and data["power_w"] is not None and data["power_w"] < 5000:
                         cur.execute(
                             "INSERT INTO tapo_readings (device_id, ts, power_w, today_energy_wh) "
                             "VALUES (%s, %s, %s, %s)",

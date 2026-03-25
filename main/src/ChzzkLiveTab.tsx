@@ -1,10 +1,6 @@
-import type { Recording } from './types';
+import type { HealthState, Recording } from './types';
 import { fmtElapsed, FALLBACK_THUMBNAIL } from './chzzkUtils';
 import { buildThumbnailProxyUrl } from './api';
-
-interface HealthState {
-  scanner_running?: boolean;
-}
 
 interface Props {
   health: HealthState | null;

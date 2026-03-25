@@ -17,17 +17,9 @@ import {
   stopRecording,
   updateChannel,
   uploadGoogleDriveCredentials,
+  uploadGoogleDriveSession,
 } from './api';
-import type { Channel, GoogleDriveSettings, Recording, UploadLog } from './types';
-
-type HealthState = {
-  healthy: boolean;
-  scanner_running?: boolean;
-  active_recordings?: number;
-  disk_free_bytes?: number | null;
-  disk_total_bytes?: number | null;
-  disk_used_percent?: number | null;
-};
+import type { Channel, GoogleDriveSettings, HealthState, Recording, UploadLog } from './types';
 
 type CookieStatus = {
   configured: boolean;
@@ -99,11 +91,11 @@ export function useChzzkData() {
 
     const pollOnce = async () => {
       await Promise.all([
-        fetchHealth().then((r) => { if (mounted) setHealth(r); }).catch(() => undefined),
-        fetchActiveRecordings().then((r) => { if (mounted) setActiveRecordings(r.items ?? []); }).catch(() => undefined),
-        fetchUploadStatus().then((r) => { if (mounted) { setUploads(r.items ?? []); setActiveUploads(r.active_uploads ?? 0); } }).catch(() => undefined),
-        fetchRecordings(200).then((r) => { if (mounted) setRecordings(r.items ?? []); }).catch(() => undefined),
-        fetchGoogleDriveSettings().then((r) => { if (mounted) setGoogleDriveStatus(r.item); }).catch(() => undefined),
+        fetchHealth().then((r) => { if (mounted) setHealth(r); }).catch((e) => console.warn('fetchHealth poll failed:', e)),
+        fetchActiveRecordings().then((r) => { if (mounted) setActiveRecordings(r.items ?? []); }).catch((e) => console.warn('fetchActiveRecordings poll failed:', e)),
+        fetchUploadStatus().then((r) => { if (mounted) { setUploads(r.items ?? []); setActiveUploads(r.active_uploads ?? 0); } }).catch((e) => console.warn('fetchUploadStatus poll failed:', e)),
+        fetchRecordings(200).then((r) => { if (mounted) setRecordings(r.items ?? []); }).catch((e) => console.warn('fetchRecordings poll failed:', e)),
+        fetchGoogleDriveSettings().then((r) => { if (mounted) setGoogleDriveStatus(r.item); }).catch((e) => console.warn('fetchGoogleDriveSettings poll failed:', e)),
       ]);
     };
 
@@ -208,14 +200,28 @@ export function useChzzkData() {
     } catch (error) { setMessage((error as Error).message); }
   };
 
+  const refreshDriveStatus = () => {
+    fetchGoogleDriveSettings().then((r) => setGoogleDriveStatus(r.item)).catch((e) => console.warn('refreshDriveStatus failed:', e));
+  };
+
+  const handleUploadDriveSession = async (file: File) => {
+    setSavingDriveCredentials(true); setMessage('');
+    try {
+      const result = await uploadGoogleDriveSession(file);
+      setGoogleDriveStatus(result.item);
+      setMessage('Google Drive session uploaded.');
+    } catch (error) { setMessage((error as Error).message); }
+    finally { setSavingDriveCredentials(false); }
+  };
+
   return {
     loading, message, health, channels, activeRecordings, recordings, uploads, activeUploads,
     globalCookieStatus, googleDriveStatus, channelQualityDrafts, setChannelQualityDrafts,
     activeChannelCount, retryingRecordingId, deletingRecordingId, stoppingRecordingId,
     savingChannel, savingCookies, savingDriveCredentials,
-    refreshAll,
+    refreshAll, refreshDriveStatus,
     handleAddChannel, handleDeleteChannel, handleToggleChannel, handleSaveChannelQuality,
-    handleManualRecord, handleSaveCookies, handleUploadDriveCredentials,
+    handleManualRecord, handleSaveCookies, handleUploadDriveCredentials, handleUploadDriveSession,
     handleRetryUpload, handleStopRecording, handleDeleteRecording,
     handleBulkDeleteRecordings, handleBulkDeleteUploads,
   };

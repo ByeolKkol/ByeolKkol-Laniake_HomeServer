@@ -1,17 +1,7 @@
+import { createRequest } from './fetchJson';
 import { getTapoApiBase } from './settingsStore';
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${getTapoApiBase()}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`Electricity API error ${res.status}: ${body}`);
-  }
-  if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
-}
+const request = createRequest(getTapoApiBase);
 
 export interface ElectricityRate {
   tier: number;

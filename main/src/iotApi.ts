@@ -1,17 +1,7 @@
+import { createRequest } from './fetchJson';
 import { getIotApiBase } from './settingsStore';
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${getIotApiBase()}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`IoT API error ${res.status}: ${body}`);
-  }
-  if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
-}
+const request = createRequest(getIotApiBase);
 
 export interface IotDevice {
   id: number;

@@ -20,13 +20,3 @@ def get_db():
 
 def query_global_cookies(db, cookie_model):
     return db.query(cookie_model).filter(cookie_model.channel_id.is_(None))
-
-
-def ensure_upload_schema() -> None:
-    """Deprecated: Alembic 마이그레이션으로 대체됨. 하위 호환을 위해 유지."""
-    pass
-
-
-def ensure_channel_schema() -> None:
-    """Deprecated: Alembic 마이그레이션으로 대체됨. 하위 호환을 위해 유지."""
-    pass

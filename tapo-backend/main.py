@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
@@ -10,6 +11,8 @@ from db import cleanup_old, init_db
 from routers import devices, electricity, history, tapo_settings
 from tapo_poller import poll_loop
 
+logger = logging.getLogger(__name__)
+
 
 async def _cleanup_loop() -> None:
     while True:
@@ -17,7 +20,7 @@ async def _cleanup_loop() -> None:
         try:
             cleanup_old()
         except Exception:
-            pass
+            logger.exception("Cleanup loop error")
 
 
 @asynccontextmanager

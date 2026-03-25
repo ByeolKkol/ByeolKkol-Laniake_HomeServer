@@ -149,7 +149,7 @@ export const HistoryChart = ({
       <div className="relative w-7 shrink-0 select-none">
         <span className="absolute right-0 translate-y-[-50%] text-[9px] text-app-muted"
           style={{ top: `${(toY(yMax) / H) * 100}%` }}>
-          {yMax}{unit}
+          {Math.round(yMax)}{unit}
         </span>
         {hGridTicks.map(({ value, y }) => (
           <span key={value} className="absolute right-0 translate-y-[-50%] text-[9px] text-app-muted"

@@ -78,7 +78,13 @@ def get_drive_connection_status() -> dict[str, Any]:
     credential_type = _detect_credential_type()
     has_credentials = GOOGLE_DRIVE_CREDENTIALS_FILE.exists()
     has_settings = GOOGLE_DRIVE_SETTINGS_FILE.exists()
-    has_session = GOOGLE_DRIVE_SESSION_FILE.exists()
+    has_session = False
+    if GOOGLE_DRIVE_SESSION_FILE.exists():
+        try:
+            content = json.loads(GOOGLE_DRIVE_SESSION_FILE.read_text(encoding="utf-8"))
+            has_session = isinstance(content, dict) and "_module" in content
+        except Exception:
+            pass
 
     connected = False
     detail = "Google Drive is not configured"
@@ -144,8 +150,95 @@ def _build_gauth() -> GoogleAuth:
     return gauth
 
 
+def get_oauth_url() -> str:
+    """Return the OAuth authorization URL for one-time setup."""
+    if not GOOGLE_DRIVE_CREDENTIALS_FILE.exists():
+        raise RuntimeError("credentials.json not found")
+    _ensure_settings_file()
+    gauth = GoogleAuth(settings_file=str(GOOGLE_DRIVE_SETTINGS_FILE))
+    return gauth.GetAuthUrl()
+
+
+def complete_oauth(code: str) -> None:
+    """Exchange OAuth authorization code for tokens and save session."""
+    _ensure_settings_file()
+    gauth = GoogleAuth(settings_file=str(GOOGLE_DRIVE_SETTINGS_FILE))
+    gauth.Auth(code.strip())
+    gauth.SaveCredentialsFile(str(GOOGLE_DRIVE_SESSION_FILE))
+
+
 def _build_drive() -> GoogleDrive:
     return GoogleDrive(_build_gauth())
+
+
+async def _perform_chunked_upload(
+    file_path: str,
+    parent_folder_id: str | None,
+    file_size: int,
+    db: Any,
+    log: UploadLog,
+) -> dict[str, Any]:
+    """Google Drive에 청크 단위로 업로드하고 진행률을 DB에 반영한다."""
+    gauth = await asyncio.to_thread(_build_gauth)
+    http = gauth.Get_Http_Object()
+    service = google_build("drive", "v3", http=http)
+
+    mime_type, _ = mimetypes.guess_type(file_path)
+    media = MediaFileUpload(
+        file_path,
+        mimetype=mime_type or "application/octet-stream",
+        resumable=True,
+        chunksize=CHUNK_SIZE,
+    )
+    file_metadata: dict[str, Any] = {"name": Path(file_path).name}
+    if parent_folder_id:
+        file_metadata["parents"] = [parent_folder_id]
+
+    request = service.files().create(
+        body=file_metadata,
+        media_body=media,
+        fields="id,webViewLink",
+        supportsAllDrives=True,
+    )
+
+    response = None
+    last_percent = -1
+    while response is None:
+        upload_status, response = await asyncio.to_thread(request.next_chunk)
+        if upload_status:
+            percent = int(upload_status.progress() * 100)
+            if percent != last_percent:
+                last_percent = percent
+                log.progress_percent = percent
+                log.bytes_uploaded = int(file_size * upload_status.progress())
+                db.commit()
+
+    return response
+
+
+def _finalize_upload(db: Any, log: UploadLog, response: dict[str, Any], file_size: int, file_path: str) -> None:
+    """업로드 완료 후 DB 상태를 갱신하고 로컬 파일을 삭제한다."""
+    file_id = response.get("id")
+    file_url = response.get("webViewLink")
+    if not file_url and file_id:
+        file_url = f"https://drive.google.com/file/d/{file_id}/view"
+
+    log.status = "completed"
+    log.progress_percent = 100
+    log.bytes_uploaded = file_size
+    log.bytes_total = file_size
+    log.drive_file_id = file_id
+    log.drive_file_url = file_url
+    log.uploaded_at = _utc_now()
+    log.message = "Uploaded to Google Drive"
+    db.commit()
+
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            logger.info("Local file removed after successful upload: %s", file_path)
+    except Exception:
+        logger.exception("Failed to remove local file: %s", file_path)
 
 
 async def upload_to_drive(
@@ -176,63 +269,8 @@ async def upload_to_drive(
         log.message = "Uploading to Google Drive"
         db.commit()
 
-        # 청크 업로드 (10MB 단위, 진행률 실시간 업데이트)
-        gauth = await asyncio.to_thread(_build_gauth)
-        http = gauth.Get_Http_Object()
-        service = google_build("drive", "v3", http=http)
-
-        mime_type, _ = mimetypes.guess_type(file_path)
-        media = MediaFileUpload(
-            file_path,
-            mimetype=mime_type or "application/octet-stream",
-            resumable=True,
-            chunksize=CHUNK_SIZE,
-        )
-        file_metadata: dict[str, Any] = {"name": Path(file_path).name}
-        if parent_folder_id:
-            file_metadata["parents"] = [parent_folder_id]
-
-        request = service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields="id,webViewLink",
-            supportsAllDrives=True,
-        )
-
-        response = None
-        last_percent = -1
-        while response is None:
-            upload_status, response = await asyncio.to_thread(request.next_chunk)
-            if upload_status:
-                percent = int(upload_status.progress() * 100)
-                if percent != last_percent:
-                    last_percent = percent
-                    log.progress_percent = percent
-                    log.bytes_uploaded = int(file_size * upload_status.progress())
-                    db.commit()
-
-        file_id = response.get("id")
-        file_url = response.get("webViewLink")
-        if not file_url and file_id:
-            file_url = f"https://drive.google.com/file/d/{file_id}/view"
-
-        log.status = "completed"
-        log.progress_percent = 100
-        log.bytes_uploaded = file_size
-        log.bytes_total = file_size
-        log.drive_file_id = file_id
-        log.drive_file_url = file_url
-        log.uploaded_at = _utc_now()
-        log.message = "Uploaded to Google Drive"
-        db.commit()
-
-        # 업로드 성공 후 로컬 파일 삭제 (서버 용량 관리)
-        try:
-            if os.path.exists(file_path):
-                os.remove(file_path)
-                logger.info(f"Local file removed after successful upload: {file_path}")
-        except Exception as e:
-            logger.error(f"Failed to remove local file: {file_path}, error: {e}")
+        response = await _perform_chunked_upload(file_path, parent_folder_id, file_size, db, log)
+        _finalize_upload(db, log, response, file_size, file_path)
     except Exception as exc:
         logger.exception("Upload task crashed upload_log_id=%s", upload_log_id)
         try:

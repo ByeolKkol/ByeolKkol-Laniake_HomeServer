@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import time
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
@@ -10,6 +11,8 @@ from models.hardware import HealthResponse
 from routers import battery, display, history, led, metrics, profile, status
 from services import metrics_store, sysinfo
 from services.sysfs import read_cpu_temp
+
+logger = logging.getLogger(__name__)
 
 # 네트워크 속도 계산용 이전 값 추적
 _prev_net_ts: float = 0.0
@@ -44,7 +47,7 @@ async def _collect_loop() -> None:
 
             metrics_store.insert_sample(cpu, mem, temp, net_recv_bps, net_sent_bps)
         except Exception:
-            pass
+            logger.exception("Metrics collect error")
 
 
 async def _cleanup_loop() -> None:
@@ -54,7 +57,7 @@ async def _cleanup_loop() -> None:
         try:
             metrics_store.cleanup_old()
         except Exception:
-            pass
+            logger.exception("Cleanup loop error")
 
 
 @asynccontextmanager

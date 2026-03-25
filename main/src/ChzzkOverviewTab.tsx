@@ -6,13 +6,7 @@ import {
 } from './chzzkUtils';
 import { GaugeRing, PulseDot, UsageBar, fmtBytes, usageColorCls, usageColorHex } from './Charts';
 
-interface HealthState {
-  healthy: boolean;
-  scanner_running?: boolean;
-  disk_free_bytes?: number | null;
-  disk_used_percent?: number | null;
-  disk_total_bytes?: number | null;
-}
+import type { HealthState } from './types';
 
 interface Props {
   health: HealthState | null;

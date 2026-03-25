@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from database import Base, SessionLocal, engine, ensure_channel_schema, ensure_upload_schema, get_db
+from database import Base, SessionLocal, engine, get_db
 from models import Recording
 from routers import channels, cookies, proxy, recordings, settings, uploads
 from scanner import ChzzkScanner
@@ -24,8 +24,6 @@ GOOGLE_DRIVE_PARENT_ID = os.getenv("GOOGLE_DRIVE_PARENT_ID")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
-    ensure_channel_schema()
-    ensure_upload_schema()
 
     app.state.recordings_output_dir = RECORDINGS_OUTPUT_DIR
     app.state.recording_tasks = {}

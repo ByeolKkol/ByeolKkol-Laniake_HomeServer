@@ -16,7 +16,7 @@ function TapoCredentialsCard(): JSX.Element {
   useEffect(() => {
     fetchTapoCredentials()
       .then((c) => { setUsername(c.username); setHasPassword(c.has_password); })
-      .catch(() => undefined);
+      .catch((e) => console.warn('fetchTapoCredentials failed:', e));
   }, []);
 
   const handleSave = async (): Promise<void> => {

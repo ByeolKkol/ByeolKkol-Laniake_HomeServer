@@ -6,20 +6,10 @@ export interface HardwareStatus {
   display_brightness: number | null;
 }
 
+import { createRequest } from './fetchJson';
 import { getServerApiBase } from './settingsStore';
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${getServerApiBase()}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`Server API error ${res.status}: ${body}`);
-  }
-  if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
-}
+const request = createRequest(getServerApiBase);
 
 export function fetchServerStatus(): Promise<HardwareStatus> {
   return request<HardwareStatus>('/status');

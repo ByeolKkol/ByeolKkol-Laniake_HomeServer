@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import ipaddress
 import logging
+import socket
 
 import httpx
 from fastapi import APIRouter, HTTPException, Query
@@ -10,12 +12,28 @@ from urllib.parse import urlparse
 router = APIRouter(tags=["proxy"])
 logger = logging.getLogger(__name__)
 
+_ALLOWED_HOSTS = {"naver.com", "chzzk.naver.com", "phinf.pstatic.net", "livecloud-thumb.akamaized.net"}
+
+
+def _is_safe_url(url: str) -> bool:
+    """외부 URL만 허용. 내부 IP 및 허용 도메인 외 차단."""
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"}:
+        return False
+    hostname = parsed.hostname or ""
+    if any(hostname.endswith(h) for h in _ALLOWED_HOSTS):
+        return True
+    try:
+        addr = ipaddress.ip_address(socket.gethostbyname(hostname))
+        return addr.is_global
+    except (socket.gaierror, ValueError):
+        return False
+
 
 @router.get("/proxy/thumbnail")
 async def proxy_thumbnail(url: str = Query(min_length=1, max_length=2048)) -> Response:
-    parsed = urlparse(url)
-    if parsed.scheme not in {"http", "https"}:
-        raise HTTPException(status_code=400, detail="Invalid thumbnail URL")
+    if not _is_safe_url(url):
+        raise HTTPException(status_code=400, detail="URL not allowed")
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",

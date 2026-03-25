@@ -139,7 +139,7 @@ const IotTab = (): JSX.Element => {
       const params = useCustom
         ? { start_ts: fromDateInput(startDate, false), end_ts: fromDateInput(endDate, true) }
         : { minutes: rangeMinutes };
-      fetchIotHistory(selectedId, params).then(setHistory).catch(() => undefined);
+      fetchIotHistory(selectedId, params).then(setHistory).catch((e) => console.warn('fetchIotHistory failed:', e));
     }, 30000);
     return () => window.clearInterval(id);
   }, [selectedId, rangeMinutes, useCustom, startDate, endDate]);
@@ -152,7 +152,7 @@ const IotTab = (): JSX.Element => {
       : { minutes: rangeMinutes };
     fetchIotHistory(selectedId, params)
       .then(setHistory)
-      .catch(() => undefined);
+      .catch((e) => console.warn('fetchIotHistory failed:', e));
   }, [selectedId, rangeMinutes, useCustom, startDate, endDate]);
 
   const handleAdd = useCallback(async (name: string, mac: string): Promise<void> => {
