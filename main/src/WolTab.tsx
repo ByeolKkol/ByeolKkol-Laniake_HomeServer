@@ -25,6 +25,7 @@ const EMPTY_FORM: WolTargetCreate = {
 const OS_LABEL: Record<string, string> = {
   windows: 'Windows',
   linux: 'Linux',
+  synology: 'Synology',
 };
 
 function StatusDot({ online }: { online: boolean | null }) {
@@ -95,6 +96,7 @@ function TargetForm({
           <select className="w-full rounded-lg border border-app-border bg-panel px-3 py-2 text-sm" value={form.os_type ?? 'linux'} onChange={(e) => set('os_type', e.target.value)}>
             <option value="windows">Windows</option>
             <option value="linux">Linux</option>
+            <option value="synology">Synology</option>
           </select>
         </div>
       </div>

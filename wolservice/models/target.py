@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-OsType = Literal["windows", "linux"]
+OsType = Literal["windows", "linux", "synology"]
 
 
 class WolTarget(BaseModel):

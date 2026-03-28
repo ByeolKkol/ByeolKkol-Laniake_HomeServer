@@ -10,10 +10,12 @@ from models.target import OsType
 _SHUTDOWN_CMD: dict[OsType, str] = {
     "windows": "shutdown /s /t 0\r\n",
     "linux": "sudo shutdown -h now\n",
+    "synology": "sudo poweroff\n",
 }
 _REBOOT_CMD: dict[OsType, str] = {
     "windows": "shutdown /r /t 0\r\n",
     "linux": "sudo reboot\n",
+    "synology": "sudo reboot\n",
 }
 
 
