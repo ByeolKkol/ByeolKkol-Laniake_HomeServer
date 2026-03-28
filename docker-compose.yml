@@ -1,3 +1,5 @@
+name: laniakea_home_server
+
 services:
   db:
     image: postgres:15-alpine
@@ -115,12 +117,16 @@ services:
     environment:
       - DATABASE_URL=postgresql://byeolkkol:${POSTGRES_PASSWORD}@db:5432/laniakea
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://192.168.1.8:8080}
-      - XIAOMI_USERNAME=${XIAOMI_USERNAME:-}
-      - XIAOMI_PASSWORD=${XIAOMI_PASSWORD:-}
-      - XIAOMI_REGION=${XIAOMI_REGION:-cn}
-      - XIAOMI_DEVICE_ID=${XIAOMI_DEVICE_ID:-}
+      - SCALE_MAC=${SCALE_MAC:-D4:43:8A:E4:3F:A2}
+      - SCALE_BINDKEY=${SCALE_BINDKEY:-e5a6a2d894af716e62115d8aec95786d}
+      - SCALE_USER_HEIGHT_CM=${SCALE_USER_HEIGHT_CM:-175}
+      - SCALE_USER_DOB=${SCALE_USER_DOB:-1985-08-10}
+      - DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket
+    volumes:
+      - /run/dbus:/run/dbus:rw
     ports:
       - "8095:8095"
+    privileged: true
     depends_on:
       - db
     networks:

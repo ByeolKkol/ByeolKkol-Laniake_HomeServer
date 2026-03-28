@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { HistoryChart } from './Charts';
+import {
+  HistoryChart, fmtAgo, FIXED_RANGE_PRESETS,
+  type FixedRangeKey, type ShortPreset,
+} from './Charts';
 import {
   fetchMonthly, fetchRates, saveRates,
   type ElectricityRate, type MonthlyUsage,
@@ -13,22 +16,13 @@ import {
 // ── helpers ───────────────────────────────────────────────────────────────────
 const fmtW   = (v: number | null): string => (v != null ? `${v.toFixed(1)}W` : '-');
 const fmtWh  = (v: number | null): string => (v != null ? `${v.toFixed(0)}Wh` : '-');
-const fmtAgo = (ts: number | null): string => {
-  if (ts == null) return '-';
-  const s = Math.floor(Date.now() / 1000 - ts);
-  if (s < 60) return `${s}초 전`;
-  if (s < 3600) return `${Math.floor(s / 60)}분 전`;
-  return `${Math.floor(s / 3600)}시간 전`;
-};
 
-// ── preset ranges ─────────────────────────────────────────────────────────────
-interface RangePreset { label: string; minutes: number }
-const PRESETS: RangePreset[] = [
+const safeMax = (arr: number[]): number => arr.reduce((a, b) => Math.max(a, b), -Infinity);
+
+const SHORT_PRESETS: ShortPreset[] = [
   { label: '30분', minutes: 30 },
   { label: '1시간', minutes: 60 },
   { label: '6시간', minutes: 360 },
-  { label: '24시간', minutes: 1440 },
-  { label: '7일', minutes: 10080 },
 ];
 
 // ── sub-components ────────────────────────────────────────────────────────────
@@ -187,7 +181,7 @@ const RateEditor = ({ onSaved }: { onSaved: () => void }): JSX.Element => {
   );
 };
 
-// ── MonthlySection ─────────────────────────────────────────────────────────────
+// ── MonthlySection ───────────────────────────────────────────────────────────
 const fmtWon = (v: number): string => v.toLocaleString('ko-KR') + '원';
 const fmtKwh = (v: number): string => v.toFixed(1) + ' kWh';
 
@@ -256,10 +250,21 @@ const TapoSection = (): JSX.Element => {
   const [devices, setDevices]           = useState<TapoDevice[]>([]);
   const [selectedId, setSelectedId]     = useState<number | null>(null);
   const [history, setHistory]           = useState<TapoDeviceHistory | null>(null);
-  const [rangeMinutes, setRangeMinutes] = useState<number>(60);
+  const [rangeMinutes, setRangeMinutes] = useState<number | null>(null);
+  const [fixedKey, setFixedKey]         = useState<FixedRangeKey | null>('24h');
   const [toggling, setToggling]         = useState<number | null>(null);
   const [syncing, setSyncing]           = useState(false);
   const [error, setError]               = useState('');
+
+  const fixedRange = useMemo(() =>
+    fixedKey ? FIXED_RANGE_PRESETS.find((p) => p.key === fixedKey)!.rangeFn() : null,
+  [fixedKey]);
+
+  const buildParams = useCallback(() => {
+    if (fixedRange) return { start_ts: fixedRange.startTs, end_ts: fixedRange.endTs };
+    if (rangeMinutes) return { minutes: rangeMinutes };
+    return { minutes: 60 };
+  }, [fixedRange, rangeMinutes]);
 
   const loadDevices = useCallback(async (): Promise<void> => {
     try { setDevices(await fetchTapoDevices()); }
@@ -276,15 +281,15 @@ const TapoSection = (): JSX.Element => {
   useEffect(() => {
     if (selectedId == null) return;
     const id = window.setInterval(() => {
-      fetchTapoHistory(selectedId, { minutes: rangeMinutes }).then(setHistory).catch((e) => console.warn('fetchTapoHistory failed:', e));
+      fetchTapoHistory(selectedId, buildParams()).then(setHistory).catch((e) => console.warn('fetchTapoHistory failed:', e));
     }, 30000);
     return () => window.clearInterval(id);
-  }, [selectedId, rangeMinutes]);
+  }, [selectedId, buildParams]);
 
   useEffect(() => {
     if (selectedId == null) return;
-    fetchTapoHistory(selectedId, { minutes: rangeMinutes }).then(setHistory).catch((e) => console.warn('fetchTapoHistory failed:', e));
-  }, [selectedId, rangeMinutes]);
+    fetchTapoHistory(selectedId, buildParams()).then(setHistory).catch((e) => console.warn('fetchTapoHistory failed:', e));
+  }, [selectedId, buildParams]);
 
   const handleSync = useCallback(async (): Promise<void> => {
     setSyncing(true);
@@ -343,7 +348,7 @@ const TapoSection = (): JSX.Element => {
     const last = history.points[history.points.length - 1];
     return {
       avg:          (powerPoints.reduce((a, b) => a + b, 0) / powerPoints.length).toFixed(1),
-      max:          Math.max(...powerPoints).toFixed(1),
+      max:          safeMax(powerPoints).toFixed(1),
       todayEnergyWh: last.today_energy_wh,
     };
   }, [powerPoints, history]);
@@ -351,13 +356,12 @@ const TapoSection = (): JSX.Element => {
   return (
     <section className="space-y-4">
       {error && (
-        <p className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
-          {error}
+        <div className="flex items-center justify-between rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+          <span>{error}</span>
           <button onClick={() => setError('')} className="ml-2 text-xs underline">닫기</button>
-        </p>
+        </div>
       )}
 
-      {/* Sync button */}
       <div className="flex items-center gap-3">
         <p className="text-xs text-app-muted">Tapo 계정의 기기를 자동으로 불러옵니다.</p>
         <button
@@ -368,7 +372,6 @@ const TapoSection = (): JSX.Element => {
         </button>
       </div>
 
-      {/* Summary bar */}
       {devices.length > 0 && (
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl border border-app-border bg-app-soft px-4 py-3 text-center">
@@ -382,7 +385,6 @@ const TapoSection = (): JSX.Element => {
         </div>
       )}
 
-      {/* Plug cards grid */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {devices.length === 0 && (
           <p className="col-span-full text-sm text-app-muted">
@@ -400,23 +402,31 @@ const TapoSection = (): JSX.Element => {
         ))}
       </div>
 
-      {/* Monthly usage + rate settings */}
       <div className="space-y-2">
         <p className="text-xs font-semibold text-app-muted">월별 전력 사용량 및 요금</p>
         <MonthlySection />
       </div>
 
-      {/* History detail */}
       {selectedDevice && (
         <article className="rounded-xl border border-app-border bg-app-soft p-4">
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <p className="text-sm font-semibold">{selectedDevice.name} 전력 이력</p>
             <div className="flex flex-wrap gap-1">
-              {PRESETS.map((p) => (
+              {SHORT_PRESETS.map((p) => (
                 <button key={p.minutes}
-                  onClick={() => setRangeMinutes(p.minutes)}
+                  onClick={() => { setFixedKey(null); setRangeMinutes(p.minutes); }}
                   className={`rounded-lg border px-2.5 py-0.5 text-xs transition ${
-                    rangeMinutes === p.minutes
+                    !fixedKey && rangeMinutes === p.minutes
+                      ? 'border-brand bg-brand/20 text-app-text'
+                      : 'border-transparent text-app-muted hover:border-app-border'}`}>
+                  {p.label}
+                </button>
+              ))}
+              {FIXED_RANGE_PRESETS.map((p) => (
+                <button key={p.key}
+                  onClick={() => { setRangeMinutes(null); setFixedKey(p.key); }}
+                  className={`rounded-lg border px-2.5 py-0.5 text-xs transition ${
+                    fixedKey === p.key
                       ? 'border-brand bg-brand/20 text-app-text'
                       : 'border-transparent text-app-muted hover:border-app-border'}`}>
                   {p.label}
@@ -430,8 +440,9 @@ const TapoSection = (): JSX.Element => {
 
           <p className="mb-1 text-xs font-medium">전력 (W)</p>
           <HistoryChart points={powerPoints} color="#fbbf24"
-            yMin={0} yMax={Math.max(100, ...(powerPoints.length ? powerPoints : [100]))}
-            unit="W" timestamps={timestamps} />
+            yMin={0} yMax={Math.max(100, powerPoints.length ? safeMax(powerPoints) : 100)}
+            unit="W" timestamps={timestamps}
+            fixedRange={fixedRange ?? undefined} />
 
           {powerStats && (
             <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[10px] text-app-muted">

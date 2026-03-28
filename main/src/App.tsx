@@ -22,7 +22,7 @@ type AppKey = 'chzzk' | 'server' | 'wol' | 'discussion' | 'iot' | 'health' | 'se
 type ChzzkTabKey = 'overview' | 'live' | 'uploads' | 'channels';
 type ServerTabKey = 'hardware' | 'monitoring';
 type IotTabKey = 'sensors' | 'tapo';
-type HealthTabKey = 'weight' | 'activity';
+type HealthTabKey = 'weight' | 'activity' | 'sleep';
 type SettingsTabKey = 'app' | 'chzzk-account';
 type DiscussionTabKey = 'chat' | 'prompt-common' | 'prompt-claude' | 'prompt-gemini' | 'prompt-codex';
 
@@ -42,8 +42,9 @@ const IOT_TABS: Array<{ key: IotTabKey; label: string; hint: string }> = [
 ];
 
 const HEALTH_TABS: Array<{ key: HealthTabKey; label: string; hint: string }> = [
-  { key: 'weight',   label: '체중',  hint: '체중 추이 · 체성분' },
-  { key: 'activity', label: '활동',  hint: '심박수 · 운동 기록' },
+  { key: 'weight',   label: '체중',   hint: '체중 추이 · 체성분' },
+  { key: 'activity', label: '활동',   hint: '심박수 · 걸음수 · 운동 · 바이탈' },
+  { key: 'sleep',    label: '수면',   hint: '수면 시간 · 패턴' },
 ];
 
 const CHZZK_TABS: Array<{ key: ChzzkTabKey; label: string; hint: string }> = [

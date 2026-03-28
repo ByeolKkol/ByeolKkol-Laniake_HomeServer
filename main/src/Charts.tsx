@@ -1,5 +1,126 @@
 // ── 공통 차트 컴포넌트 (SVG 기반, 외부 의존성 없음) ──────────────────────────
 
+import { useId } from 'react';
+
+// ── 공용 헬퍼 ────────────────────────────────────────────────────────────────
+
+export const fmtAgo = (ts: number | null): string => {
+  if (ts == null) return '-';
+  const s = Math.floor(Date.now() / 1000 - ts);
+  if (s < 60) return `${s}초 전`;
+  if (s < 3600) return `${Math.floor(s / 60)}분 전`;
+  return `${Math.floor(s / 3600)}시간 전`;
+};
+
+const safeMax = (arr: number[]): number => arr.reduce((a, b) => Math.max(a, b), -Infinity);
+const safeMin = (arr: number[]): number => arr.reduce((a, b) => Math.min(a, b), Infinity);
+
+// ── 고정 시간 범위 타입 + 프리셋 ─────────────────────────────────────────────
+
+export interface FixedTimeRange {
+  startTs: number;   // unix seconds (범위 시작)
+  endTs: number;     // unix seconds (범위 끝)
+  tickInterval: number; // seconds (틱 간격)
+  labelFn: (ts: number) => string; // 틱 라벨 포매터
+}
+
+export type FixedRangeKey = '24h' | '7d' | '30d';
+
+export interface FixedRangePreset {
+  label: string;
+  key: FixedRangeKey;
+  rangeFn: () => FixedTimeRange;
+}
+
+/** 오늘 00:00~24:00, 10분 간격 */
+export const todayRange = (): FixedTimeRange => {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() / 1000;
+  return { startTs: start, endTs: start + 86400, tickInterval: 600, labelFn: (ts) => {
+    const h = Math.floor((ts - start) / 3600) % 24;
+    const m = Math.floor(((ts - start) % 3600) / 60);
+    return m === 0 ? `${String(h).padStart(2,'0')}` : '';
+  }};
+};
+
+/** 이번 주 월~일, 1시간 간격 */
+export const thisWeekRange = (): FixedTimeRange => {
+  const now = new Date();
+  const dow = now.getDay(); // 0=Sun
+  const diffToMon = dow === 0 ? -6 : 1 - dow;
+  const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMon);
+  const start = mon.getTime() / 1000;
+  const end = start + 7 * 86400;
+  const dayLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  return { startTs: start, endTs: end, tickInterval: 3600, labelFn: (ts) => {
+    const elapsed = ts - start;
+    const dayIdx = Math.floor(elapsed / 86400);
+    const hourInDay = Math.floor((elapsed % 86400) / 3600);
+    if (hourInDay === 12 && dayIdx >= 0 && dayIdx < 7) return dayLabels[dayIdx];
+    return '';
+  }};
+};
+
+/** 이번 달 1일~마지막일, 1일 간격 */
+export const thisMonthRange = (): FixedTimeRange => {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1).getTime() / 1000;
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime() / 1000;
+  return { startTs: start, endTs: end, tickInterval: 86400, labelFn: (ts) => {
+    const d = new Date(ts * 1000);
+    return String(d.getDate());
+  }};
+};
+
+/** 공용 고정 범위 프리셋 (24시간 / 7일 / 30일) */
+export const FIXED_RANGE_PRESETS: FixedRangePreset[] = [
+  { label: '24시간', key: '24h', rangeFn: todayRange },
+  { label: '7일',   key: '7d',  rangeFn: thisWeekRange },
+  { label: '30일',  key: '30d', rangeFn: thisMonthRange },
+];
+
+/** 최근 N일 범위 — 날짜 기반 X축 (체중 등 일별 데이터용) */
+export const lastNDaysRange = (n: number): FixedTimeRange => {
+  const now = new Date();
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() / 1000;
+  const start = end - n * 86400;
+  const tickInterval = n <= 14 ? 86400 : n <= 60 ? 86400 * 3 : n <= 180 ? 86400 * 7 : 86400 * 30;
+  return {
+    startTs: start, endTs: end, tickInterval,
+    labelFn: (ts) => {
+      const elapsed = ts - start;
+      const dayIdx = Math.floor(elapsed / 86400);
+      if (dayIdx % Math.round(tickInterval / 86400) !== 0) return '';
+      const d = new Date(ts * 1000);
+      return n <= 60
+        ? `${d.getMonth() + 1}/${d.getDate()}`
+        : `${d.getMonth() + 1}월`;
+    },
+  };
+};
+
+export type WeightRangeKey = '7d' | '30d' | '90d' | '1y';
+
+export interface WeightRangePreset {
+  label: string;
+  key: WeightRangeKey;
+  days: number;
+}
+
+export const WEIGHT_RANGE_PRESETS: WeightRangePreset[] = [
+  { label: '7일',  key: '7d',  days: 7 },
+  { label: '30일', key: '30d', days: 30 },
+  { label: '90일', key: '90d', days: 90 },
+  { label: '1년',  key: '1y',  days: 365 },
+];
+
+export interface ShortPreset {
+  label: string;
+  minutes: number;
+}
+
+// ── GaugeRing ────────────────────────────────────────────────────────────────
+
 interface GaugeRingProps {
   value: number;
   max?: number;
@@ -36,6 +157,8 @@ export const GaugeRing = ({ value, max = 100, color, size = 80, label, sublabel 
   );
 };
 
+// ── AreaChart ─────────────────────────────────────────────────────────────────
+
 interface AreaChartProps {
   points: number[];
   color: string;
@@ -43,11 +166,13 @@ interface AreaChartProps {
 
 /** 그라디언트 면적 차트 (실시간 소형) */
 export const AreaChart = ({ points, color }: AreaChartProps): JSX.Element => {
+  const gid = useId();
+
   if (points.length < 2)
     return <div className="flex h-12 items-center text-xs text-app-muted">수집 중...</div>;
 
-  const min = Math.min(...points);
-  const max = Math.max(...points);
+  const min = safeMin(points);
+  const max = safeMax(points);
   const range = max - min || 1;
   const W = 400; const H = 48; const P = 3;
 
@@ -61,7 +186,6 @@ export const AreaChart = ({ points, color }: AreaChartProps): JSX.Element => {
     coords.map((c) => `L ${c.x},${c.y}`).join(' ') +
     ` L ${coords[coords.length - 1].x},${H} Z`;
   const last = coords[coords.length - 1];
-  const gid = `ag${color.replace(/\W/g, '')}`;
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="h-12 w-full" preserveAspectRatio="none">
@@ -79,13 +203,17 @@ export const AreaChart = ({ points, color }: AreaChartProps): JSX.Element => {
   );
 };
 
+// ── HistoryChart ──────────────────────────────────────────────────────────────
+
 interface HistoryChartProps {
   points: number[];
   color: string;
   yMin: number;
   yMax: number;
   unit?: string;
+  decimals?: number;
   timestamps?: number[];
+  fixedRange?: FixedTimeRange;
 }
 
 const _fmtTime = (ts: number): string => {
@@ -95,8 +223,10 @@ const _fmtTime = (ts: number): string => {
 
 /** 고정 범위 + 그리드 이력 차트 */
 export const HistoryChart = ({
-  points, color, yMin, yMax, unit = '', timestamps,
+  points, color, yMin, yMax, unit = '', decimals = 1, timestamps, fixedRange,
 }: HistoryChartProps): JSX.Element => {
+  const gid = useId();
+
   if (points.length < 2)
     return (
       <div className="flex h-28 items-center justify-center text-xs text-app-muted">
@@ -109,57 +239,73 @@ export const HistoryChart = ({
 
   const toY = (v: number): number =>
     H - PY - ((Math.min(Math.max(v, yMin), yMax) - yMin) / range) * (H - PY * 2);
-  const toX = (i: number): number =>
-    PX + (i / (points.length - 1)) * (W - PX * 2);
 
-  const coords = points.map((v, i) => ({ x: toX(i), y: toY(v) }));
+  // fixedRange가 있으면 timestamp 기반 X 좌표, 아니면 인덱스 기반
+  const hasFixed = fixedRange && timestamps;
+  const toX = hasFixed
+    ? (ts: number) => PX + ((ts - fixedRange.startTs) / (fixedRange.endTs - fixedRange.startTs)) * (W - PX * 2)
+    : (_ts: number, i: number) => PX + (i / (points.length - 1)) * (W - PX * 2);
+
+  const coords = hasFixed
+    ? points.map((v, i) => ({ x: toX(timestamps[i], i), y: toY(v) }))
+    : points.map((v, i) => ({ x: toX(0, i), y: toY(v) }));
+
   const linePts = coords.map((c) => `${c.x},${c.y}`).join(' ');
   const areaD =
     `M ${coords[0].x},${H} ` +
     coords.map((c) => `L ${c.x},${c.y}`).join(' ') +
     ` L ${coords[coords.length - 1].x},${H} Z`;
   const last = coords[coords.length - 1];
-  const gid = `hc${color.replace(/\W/g, '')}`;
 
-  const hGridTicks = [0.25, 0.5, 0.75].map((f) => ({
-    value: Math.round(yMin + range * f),
-    y: toY(yMin + range * f),
-  }));
+  const hGridTicks = [0.5]
+    .map((f) => ({ value: parseFloat((yMin + range * f).toFixed(1)), y: toY(yMin + range * f) }))
+    .filter(({ value }) => value !== yMin && value !== yMax)
+    .filter(({ value }, i, arr) => arr.findIndex(t => t.value === value) === i);
 
-  // 세로 격자: 25%, 50%, 75% 위치
-  const vTicks = [0.25, 0.5, 0.75].map((f) => {
-    const x = PX + f * (W - PX * 2);
-    const idx = Math.round(f * (points.length - 1));
-    const label = timestamps ? _fmtTime(timestamps[idx]) : '';
-    return { x, label };
-  });
+  // X축 틱 생성
+  const xTicks: { pct: number; label: string }[] = (() => {
+    if (hasFixed) {
+      const totalSec = fixedRange.endTs - fixedRange.startTs;
+      const ticks: { pct: number; label: string }[] = [];
+      for (let t = fixedRange.startTs; t <= fixedRange.endTs; t += fixedRange.tickInterval) {
+        const label = fixedRange.labelFn(t);
+        if (label) {
+          ticks.push({ pct: ((t - fixedRange.startTs) / totalSec) * 100, label });
+        }
+      }
+      return ticks;
+    }
+    if (timestamps) {
+      return [0, 0.25, 0.5, 0.75, 1].map((f) => {
+        const idx = Math.round(f * (timestamps.length - 1));
+        return { pct: f * 100, label: _fmtTime(timestamps[idx]) };
+      });
+    }
+    return [];
+  })();
 
-  // x축 레이블: SVG 내 격자 x 위치를 % 로 환산 (SVG width 기준)
-  const xLabels = timestamps
-    ? [
-        { label: _fmtTime(timestamps[0]),                     pct: 0,    align: 'left'   as const },
-        ...vTicks.map(({ x, label }) => ({ label, pct: (x / W) * 100, align: 'center' as const })),
-        { label: _fmtTime(timestamps[timestamps.length - 1]), pct: 100,  align: 'right'  as const },
-      ]
-    : [];
+  // 수직 그리드: fixedRange이면 틱 위치, 아니면 25/50/75%
+  const vGridLines = hasFixed
+    ? xTicks.map((t) => PX + (t.pct / 100) * (W - PX * 2)).filter((_, i) => i % Math.max(1, Math.floor(xTicks.length / 6)) === 0)
+    : [0.25, 0.5, 0.75].map((f) => PX + f * (W - PX * 2));
 
   return (
-    <div className="flex gap-1">
+    <div className="flex items-start gap-1">
       {/* Y축 레이블 */}
-      <div className="relative w-7 shrink-0 select-none">
+      <div className="relative h-28 w-7 shrink-0 select-none">
         <span className="absolute right-0 translate-y-[-50%] text-[9px] text-app-muted"
           style={{ top: `${(toY(yMax) / H) * 100}%` }}>
-          {Math.round(yMax)}{unit}
+          {yMax.toFixed(decimals)}{unit}
         </span>
         {hGridTicks.map(({ value, y }) => (
           <span key={value} className="absolute right-0 translate-y-[-50%] text-[9px] text-app-muted"
             style={{ top: `${(y / H) * 100}%` }}>
-            {value}
+            {value.toFixed(decimals)}
           </span>
         ))}
         <span className="absolute right-0 translate-y-[-50%] text-[9px] text-app-muted"
           style={{ top: `${(toY(yMin) / H) * 100}%` }}>
-          {yMin}{unit}
+          {yMin.toFixed(decimals)}{unit}
         </span>
       </div>
       {/* 차트 + X축 레이블 */}
@@ -177,8 +323,8 @@ export const HistoryChart = ({
               stroke="#ffffff" strokeOpacity="0.08" strokeWidth="1" strokeDasharray="4,4" />
           ))}
           {/* 수직 그리드 */}
-          {vTicks.map(({ x }) => (
-            <line key={x} x1={x} y1={0} x2={x} y2={H}
+          {vGridLines.map((x, i) => (
+            <line key={i} x1={x} y1={0} x2={x} y2={H}
               stroke="#ffffff" strokeOpacity="0.08" strokeWidth="1" strokeDasharray="4,4" />
           ))}
           {/* 최상단·최하단 경계선 */}
@@ -191,14 +337,14 @@ export const HistoryChart = ({
             strokeLinecap="round" strokeLinejoin="round" />
           <circle cx={last.x} cy={last.y} r="2.5" fill={color} />
         </svg>
-        {/* X축 시간 레이블 — SVG 너비 기준 % 정렬 */}
-        {xLabels.length > 0 && (
+        {/* X축 시간 레이블 */}
+        {xTicks.length > 0 && (
           <div className="relative h-3 select-none">
-            {xLabels.map(({ label, pct, align }) => (
-              <span key={pct} className="absolute text-[9px] text-app-muted"
+            {xTicks.map(({ label, pct }, i) => (
+              <span key={`${pct}-${i}`} className="absolute text-[8px] text-app-muted"
                 style={{
                   left: `${pct}%`,
-                  transform: align === 'center' ? 'translateX(-50%)' : align === 'right' ? 'translateX(-100%)' : 'none',
+                  transform: pct >= 99 ? 'translateX(-100%)' : pct <= 1 ? 'none' : 'translateX(-50%)',
                 }}>
                 {label}
               </span>
@@ -209,6 +355,8 @@ export const HistoryChart = ({
     </div>
   );
 };
+
+// ── UsageBar ─────────────────────────────────────────────────────────────────
 
 interface UsageBarProps {
   percent: number;
@@ -224,6 +372,8 @@ export const UsageBar = ({ percent, colorCls = 'bg-emerald-500' }: UsageBarProps
     />
   </div>
 );
+
+// ── PulseDot ─────────────────────────────────────────────────────────────────
 
 interface PulseDotProps {
   active: boolean;

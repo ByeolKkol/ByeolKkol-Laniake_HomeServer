@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { HistoryChart } from './Charts';
+import {
+  HistoryChart, fmtAgo, FIXED_RANGE_PRESETS,
+  type FixedRangeKey, type ShortPreset,
+} from './Charts';
 import {
   addIotDevice, deleteIotDevice, fetchIotDevices, fetchIotHistory,
   type IotDevice, type IotDeviceHistory,
@@ -9,13 +12,6 @@ import {
 const fmtTemp = (v: number | null): string => (v != null ? `${v.toFixed(1)}°C` : '-');
 const fmtHum  = (v: number | null): string => (v != null ? `${v.toFixed(1)}%` : '-');
 const fmtMv   = (v: number | null): string => (v != null ? `${v}mV` : '-');
-const fmtAgo  = (ts: number | null): string => {
-  if (ts == null) return '-';
-  const s = Math.floor(Date.now() / 1000 - ts);
-  if (s < 60) return `${s}초 전`;
-  if (s < 3600) return `${Math.floor(s / 60)}분 전`;
-  return `${Math.floor(s / 3600)}시간 전`;
-};
 const tempColor = (t: number | null): string => {
   if (t == null) return '#6b7280';
   if (t < 18) return '#38bdf8';
@@ -24,16 +20,13 @@ const tempColor = (t: number | null): string => {
   return '#f87171';
 };
 
-// ── preset ranges ─────────────────────────────────────────────────────────────
-interface RangePreset { label: string; minutes: number }
-const PRESETS: RangePreset[] = [
+const safeMax = (arr: number[]): number => arr.reduce((a, b) => Math.max(a, b), -Infinity);
+
+const SHORT_PRESETS: ShortPreset[] = [
   { label: '5분',  minutes: 5 },
   { label: '30분', minutes: 30 },
   { label: '1시간', minutes: 60 },
   { label: '6시간', minutes: 360 },
-  { label: '24시간', minutes: 1440 },
-  { label: '7일',  minutes: 10080 },
-  { label: '30일', minutes: 43200 },
 ];
 
 // ── date util ─────────────────────────────────────────────────────────────────
@@ -113,11 +106,16 @@ const IotTab = (): JSX.Element => {
   const [devices, setDevices]         = useState<IotDevice[]>([]);
   const [selectedId, setSelectedId]   = useState<number | null>(null);
   const [history, setHistory]         = useState<IotDeviceHistory | null>(null);
-  const [rangeMinutes, setRangeMinutes] = useState<number>(60);
+  const [rangeMinutes, setRangeMinutes] = useState<number | null>(null);
+  const [fixedKey, setFixedKey]       = useState<FixedRangeKey | null>('24h');
   const [useCustom, setUseCustom]     = useState(false);
   const [startDate, setStartDate]     = useState(() => toDateInput(Date.now() / 1000 - 7 * 86400));
   const [endDate, setEndDate]         = useState(() => toDateInput(Date.now() / 1000));
   const [error, setError]             = useState('');
+
+  const fixedRange = useMemo(() =>
+    fixedKey ? FIXED_RANGE_PRESETS.find((p) => p.key === fixedKey)!.rangeFn() : null,
+  [fixedKey]);
 
   const loadDevices = useCallback(async (): Promise<void> => {
     try { setDevices(await fetchIotDevices()); }
@@ -126,34 +124,32 @@ const IotTab = (): JSX.Element => {
 
   useEffect(() => { void loadDevices(); }, [loadDevices]);
 
-  // Auto-refresh device list (current values) every 30s
   useEffect(() => {
     const id = window.setInterval(() => void loadDevices(), 30000);
     return () => window.clearInterval(id);
   }, [loadDevices]);
 
-  // Auto-refresh history every 30s
+  const buildParams = useCallback(() => {
+    if (useCustom) return { start_ts: fromDateInput(startDate, false), end_ts: fromDateInput(endDate, true) };
+    if (fixedRange) return { start_ts: fixedRange.startTs, end_ts: fixedRange.endTs };
+    if (rangeMinutes) return { minutes: rangeMinutes };
+    return { minutes: 60 };
+  }, [useCustom, startDate, endDate, fixedRange, rangeMinutes]);
+
   useEffect(() => {
     if (selectedId == null) return;
     const id = window.setInterval(() => {
-      const params = useCustom
-        ? { start_ts: fromDateInput(startDate, false), end_ts: fromDateInput(endDate, true) }
-        : { minutes: rangeMinutes };
-      fetchIotHistory(selectedId, params).then(setHistory).catch((e) => console.warn('fetchIotHistory failed:', e));
+      fetchIotHistory(selectedId, buildParams()).then(setHistory).catch((e) => console.warn('fetchIotHistory failed:', e));
     }, 30000);
     return () => window.clearInterval(id);
-  }, [selectedId, rangeMinutes, useCustom, startDate, endDate]);
+  }, [selectedId, buildParams]);
 
-  // Load history when selection / range changes
   useEffect(() => {
     if (selectedId == null) return;
-    const params = useCustom
-      ? { start_ts: fromDateInput(startDate, false), end_ts: fromDateInput(endDate, true) }
-      : { minutes: rangeMinutes };
-    fetchIotHistory(selectedId, params)
+    fetchIotHistory(selectedId, buildParams())
       .then(setHistory)
       .catch((e) => console.warn('fetchIotHistory failed:', e));
-  }, [selectedId, rangeMinutes, useCustom, startDate, endDate]);
+  }, [selectedId, buildParams]);
 
   const handleAdd = useCallback(async (name: string, mac: string): Promise<void> => {
     try {
@@ -179,9 +175,9 @@ const IotTab = (): JSX.Element => {
     const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
     return {
       tempAvg: (sum(tempPoints) / tempPoints.length).toFixed(1),
-      tempMax: Math.max(...tempPoints).toFixed(1),
+      tempMax: safeMax(tempPoints).toFixed(1),
       humAvg:  (sum(humPoints) / humPoints.length).toFixed(1),
-      humMax:  Math.max(...humPoints).toFixed(1),
+      humMax:  safeMax(humPoints).toFixed(1),
     };
   }, [tempPoints, humPoints]);
 
@@ -190,18 +186,17 @@ const IotTab = (): JSX.Element => {
   return (
     <section className="space-y-4">
       {error && (
-        <p className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
-          {error}
-        </p>
+        <div className="flex items-center justify-between rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+          <span>{error}</span>
+          <button onClick={() => setError('')} className="ml-2 text-rose-400 hover:text-rose-300">✕</button>
+        </div>
       )}
 
-      {/* Add sensor */}
       <div className="rounded-xl border border-app-border bg-app-soft p-4">
         <p className="mb-2 text-xs font-medium text-app-muted">센서 추가</p>
         <AddForm onAdd={(n, m) => void handleAdd(n, m)} />
       </div>
 
-      {/* Sensor cards grid */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {devices.length === 0 && (
           <p className="col-span-full text-sm text-app-muted">등록된 센서가 없습니다.</p>
@@ -214,25 +209,33 @@ const IotTab = (): JSX.Element => {
         ))}
       </div>
 
-      {/* History detail */}
       {selectedDevice && (
         <article className="rounded-xl border border-app-border bg-app-soft p-4">
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <p className="text-sm font-semibold">{selectedDevice.name} 이력</p>
 
-            {/* Preset buttons */}
             <div className="flex flex-wrap gap-1">
-              {PRESETS.map((p) => (
+              {SHORT_PRESETS.map((p) => (
                 <button key={p.minutes}
-                  onClick={() => { setUseCustom(false); setRangeMinutes(p.minutes); }}
+                  onClick={() => { setUseCustom(false); setFixedKey(null); setRangeMinutes(p.minutes); }}
                   className={`rounded-lg border px-2.5 py-0.5 text-xs transition ${
-                    !useCustom && rangeMinutes === p.minutes
+                    !useCustom && !fixedKey && rangeMinutes === p.minutes
                       ? 'border-brand bg-brand/20 text-app-text'
                       : 'border-transparent text-app-muted hover:border-app-border'}`}>
                   {p.label}
                 </button>
               ))}
-              <button onClick={() => setUseCustom(true)}
+              {FIXED_RANGE_PRESETS.map((p) => (
+                <button key={p.key}
+                  onClick={() => { setUseCustom(false); setRangeMinutes(null); setFixedKey(p.key); }}
+                  className={`rounded-lg border px-2.5 py-0.5 text-xs transition ${
+                    !useCustom && fixedKey === p.key
+                      ? 'border-brand bg-brand/20 text-app-text'
+                      : 'border-transparent text-app-muted hover:border-app-border'}`}>
+                  {p.label}
+                </button>
+              ))}
+              <button onClick={() => { setUseCustom(true); setFixedKey(null); setRangeMinutes(null); }}
                 className={`rounded-lg border px-2.5 py-0.5 text-xs transition ${
                   useCustom
                     ? 'border-brand bg-brand/20 text-app-text'
@@ -241,7 +244,6 @@ const IotTab = (): JSX.Element => {
               </button>
             </div>
 
-            {/* Custom date range */}
             {useCustom && (
               <div className="flex flex-wrap items-center gap-2">
                 <input type="date" value={startDate}
@@ -259,17 +261,16 @@ const IotTab = (): JSX.Element => {
             </span>
           </div>
 
-          {/* Temperature chart */}
           <p className="mb-1 text-xs font-medium">온도 (°C)</p>
           <HistoryChart points={tempPoints} color={tempColor(selectedDevice.temperature)}
-            yMin={-10} yMax={50} unit="°C" timestamps={timestamps} />
+            yMin={-10} yMax={50} unit="°C" timestamps={timestamps}
+            fixedRange={fixedRange ?? undefined} />
 
-          {/* Humidity chart */}
           <p className="mb-1 mt-3 text-xs font-medium">습도 (%)</p>
           <HistoryChart points={humPoints} color="#38bdf8"
-            yMin={0} yMax={100} unit="%" timestamps={timestamps} />
+            yMin={0} yMax={100} unit="%" timestamps={timestamps}
+            fixedRange={fixedRange ?? undefined} />
 
-          {/* Stats */}
           {historyStats && (
             <div className="mt-3 grid grid-cols-4 gap-2 text-center text-[10px] text-app-muted">
               <div><p>온도 평균</p><p className="font-semibold text-app-text">{historyStats.tempAvg}°C</p></div>

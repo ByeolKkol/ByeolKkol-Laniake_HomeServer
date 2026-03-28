@@ -1,6 +1,6 @@
 import time
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Response
 
 from db import get_conn
 from models import WeightCreate, WeightRecord
@@ -69,3 +69,14 @@ def push_weight(body: WeightCreate) -> WeightRecord:
             row = cur.fetchone()
         conn.commit()
     return WeightRecord(**row)
+
+
+@router.delete("/{record_id}", status_code=204, response_class=Response)
+def delete_weight(record_id: int) -> Response:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM health_weight WHERE id = %s", (record_id,))
+            if cur.rowcount == 0:
+                raise HTTPException(404, "Record not found")
+        conn.commit()
+    return Response(status_code=204)

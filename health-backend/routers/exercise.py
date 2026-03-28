@@ -37,10 +37,16 @@ def push_exercise(body: ExerciseCreate) -> ExerciseRecord:
             cur.execute(
                 """INSERT INTO health_exercise
                    (started_at, ended_at, type, duration_min, calories, distance_m, source)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING *""",
+                   VALUES (%s,%s,%s,%s,%s,%s,%s)
+                   ON CONFLICT (started_at, source) DO NOTHING
+                   RETURNING *""",
                 (body.started_at, body.ended_at, body.type, body.duration_min,
                  body.calories, body.distance_m, body.source),
             )
             row = cur.fetchone()
         conn.commit()
+    if row is None:
+        return ExerciseRecord(id=0, started_at=body.started_at, ended_at=body.ended_at,
+                              type=body.type, duration_min=body.duration_min,
+                              calories=body.calories, distance_m=body.distance_m, source=body.source)
     return ExerciseRecord(**row)

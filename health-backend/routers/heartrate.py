@@ -74,7 +74,8 @@ def push_heartrate_batch(body: HeartrateBatch) -> Response:
             for r in body.records:
                 ts = r.ts if r.ts is not None else now
                 cur.execute(
-                    "INSERT INTO health_heartrate (ts, bpm, source) VALUES (%s,%s,%s)",
+                    "INSERT INTO health_heartrate (ts, bpm, source) VALUES (%s,%s,%s) "
+                    "ON CONFLICT (ts, source) DO NOTHING",
                     (ts, r.bpm, r.source),
                 )
         conn.commit()

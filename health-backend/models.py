@@ -75,3 +75,59 @@ class ExerciseCreate(BaseModel):
     calories: int | None = None
     distance_m: int | None = None
     source: str = "galaxy_watch"
+
+
+# ── Generic Metric ────────────────────────────────────────────────────────────
+
+VALID_METRICS = {
+    "steps", "distance", "spo2", "total_calories",
+}
+
+
+class MetricRecord(BaseModel):
+    id: int
+    ts: float
+    metric: str
+    value: float
+    source: str
+
+
+class MetricCreate(BaseModel):
+    ts: float | None = None
+    metric: str
+    value: float
+    source: str = "galaxy_watch"
+
+
+class MetricBatch(BaseModel):
+    records: list[MetricCreate]
+
+
+class MetricPoint(BaseModel):
+    ts: float
+    value: float
+
+
+# ── Sleep ─────────────────────────────────────────────────────────────────────
+
+class SleepStage(BaseModel):
+    started_at: float
+    ended_at: float
+    stage: str
+
+
+class SleepRecord(BaseModel):
+    id: int
+    started_at: float
+    ended_at: float
+    duration_min: int | None = None
+    source: str
+    stages: list[SleepStage] = []
+
+
+class SleepCreate(BaseModel):
+    started_at: float
+    ended_at: float
+    duration_min: int | None = None
+    source: str = "galaxy_watch"
+    stages: list[SleepStage] = []
